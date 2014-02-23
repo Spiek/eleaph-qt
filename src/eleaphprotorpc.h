@@ -91,15 +91,12 @@ class EleaphProtoRPC : public IEleaph
         void sigDeviceRemoved(QIODevice* device);
 
     public:
-        // structure definations
-        // FIXME: Memory leak here, if Delegate Object will be deleted, the eventHandler are not deleted!
-        //        Not Possible to delete eventHandler in Delegate Decon because of Forward declaration of eventhandler
-        //        Possible Solution: Try to remove the forward declaration!
+        // Delegate (defines a registered RPC Method)
         struct Delegate
         {
             QObject* object;
             QByteArray method;
-            EleaphRpcPacketHandler *eventHandler;
+            QSharedPointer<EleaphRpcPacketHandler> eventHandler;
             bool singleShot;
         };
 
