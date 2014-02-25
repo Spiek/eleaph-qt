@@ -16,23 +16,16 @@
 #include <QtCore/QEventLoop>
 #include <QtCore/QSharedPointer>
 
+// forward declaration of file classes (some modules need classes from this module)
+class EleaphProtoRPC;
+
 // rpc modules
+#include "eleaphrpc_packet.h"
 #include "eleaphrpc_packetmetaevent.h"
+#include "eleaphrpc_asyncpacketwaiter.h"
 
 // forward declarations
 class EleaphRpcPacketHandler;
-
-
-//
-// Packet data
-// Extent the eleaph data packet for additional rpc philosophy
-//
-struct ElaphRpcPacketData : EleaphPacket
-{
-    QString strMethodName;
-};
-typedef QSharedPointer<ElaphRpcPacketData> EleaphRpcPacket;
-
 
 //
 // Main Eleaphrpc Packet System
@@ -172,28 +165,6 @@ class EleaphRpcPacketHandler : public QObject
             // ... otherwise everything is okay
             return true;
         }
-};
-
-class ElepahAsyncPacketWaiter : public QObject
-{
-    Q_OBJECT
-    signals:
-        void packetReady();
-
-    public:
-        EleaphRpcPacket receivedDataPacket;
-        ElepahAsyncPacketWaiter(EleaphProtoRPC* eleaphProto, QString strMethod)
-        {
-            eleaphProto->registerRPCMethod(strMethod, this, SLOT(packetReceived(EleaphRpcPacket)), true);
-        }
-
-    public slots:
-        void packetReceived(EleaphRpcPacket dataPacket)
-        {
-            this->receivedDataPacket = dataPacket;
-            emit packetReady();
-        }
-
 };
 
 #endif // ELEAPHPROTORPC_H

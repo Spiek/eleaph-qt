@@ -152,7 +152,7 @@ void EleaphProtoRPC::sendRPCDataPacket(QIODevice *device, QString strProcedureNa
 
 EleaphRpcPacket EleaphProtoRPC::waitAsyncForPacket(QString strMethod)
 {
-    ElepahAsyncPacketWaiter packetWaiter(this, strMethod);
+    EleaphRpcAsyncPacketWaiter packetWaiter(this, strMethod);
 
     // wait for packet with the help of the event loop
     QEventLoop eventLoop;
