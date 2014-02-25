@@ -23,4 +23,4 @@ HEADERS +=  $$PWD"/src/ieleaph.h" \
             $$PWD"/src/eleaphrpc_packethandler.h"
 
 # include path
-INCLUDEPATH += "include/"
+INCLUDEPATH += $$PWD"/include/"

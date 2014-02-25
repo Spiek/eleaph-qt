@@ -189,7 +189,7 @@ void EleaphRpc::newDataPacketReceived(EleaphPacket *dataPacket)
     dataPacket->intPacktLength -= intRPCPacketLength;
 
     // constuct rpc datapacket (and move all data from DataPacket to EleaphRPCDataPacket)
-    ElaphRpcPacketData* rpcDataPacket = (ElaphRpcPacketData*)dataPacket->move(new ElaphRpcPacketData, true);
+    EleaphRpcPacketData* rpcDataPacket = (EleaphRpcPacketData*)dataPacket->move(new EleaphRpcPacketData, true);
     EleaphRpcPacket watcher(rpcDataPacket);
 
     // set EleaphRPCDataPacket data

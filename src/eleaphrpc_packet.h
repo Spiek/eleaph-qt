@@ -11,11 +11,11 @@
 // Packet data
 // Extent the eleaph data packet for additional rpc philosophy
 //
-struct ElaphRpcPacketData : EleaphPacket
+struct EleaphRpcPacketData : EleaphPacket
 {
     QString strMethodName;
 };
-typedef QSharedPointer<ElaphRpcPacketData> EleaphRpcPacket;
+typedef QSharedPointer<EleaphRpcPacketData> EleaphRpcPacket;
 
 
 #endif // ELAPHRPC_PACKET_H
