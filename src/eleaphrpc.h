@@ -4,8 +4,8 @@
  * or send a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
  */
 
-#ifndef ELEAPHPROTORPC_H
-#define ELEAPHPROTORPC_H
+#ifndef ELEAPHRPC_H
+#define ELEAPHRPC_H
 
 // eleaph interface
 #include "ieleaph.h"
@@ -74,4 +74,4 @@ class EleaphRpc : public IEleaph
 };
 
 
-#endif // ELEAPHPROTORPC_H
+#endif // ELEAPHRPC_H

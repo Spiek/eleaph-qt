@@ -7,7 +7,7 @@
 
 // rpc modules
 #include "eleaphrpc_packet.h"
-#include "eleaphprotorpc.h"
+#include "eleaphrpc.h"
 
 class EleaphRpcAsyncPacketWaiter : public QObject
 {

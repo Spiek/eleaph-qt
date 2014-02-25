@@ -9,7 +9,7 @@ class EleaphRpcDelegate;
 
 // rpc modules
 #include "eleaphrpc_packetmetaevent.h"
-#include "eleaphprotorpc.h"
+#include "eleaphrpc.h"
 
 // Delegate (defines a registered RPC Method)
 struct EleaphRpcDelegate

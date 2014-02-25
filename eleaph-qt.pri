@@ -9,14 +9,14 @@ CONFIG += c++11
 
 # Sources
 SOURCES +=  $$PWD"/src/ieleaph.cpp" \
-            $$PWD"/src/eleaphprotorpc.cpp" \
+            $$PWD"/src/eleaphrpc.cpp" \
             $$PWD"/src/eleaphrpc_packetmetaevent.cpp" \
             $$PWD"/src/eleaphrpc_asyncpacketwaiter.cpp" \
             $$PWD"/src/eleaphrpc_packethandler.cpp"
 
 # Headers
 HEADERS +=  $$PWD"/src/ieleaph.h" \
-            $$PWD"/src/eleaphprotorpc.h" \
+            $$PWD"/src/eleaphrpc.h" \
             $$PWD"/src/eleaphrpc_packetmetaevent.h" \
             $$PWD"/src/eleaphrpc_asyncpacketwaiter.h" \
             $$PWD"/src/eleaphrpc_packet.h" \
