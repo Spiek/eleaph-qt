@@ -6,7 +6,7 @@
 
 #include "eleaphprotorpc.h"
 
-EleaphProtoRPC::EleaphProtoRPC(QObject *parent, quint32 maxDataLength) : IEleaph(maxDataLength, parent)
+EleaphRpc::EleaphRpc(QObject *parent, quint32 maxDataLength) : IEleaph(maxDataLength, parent)
 {
     // register the ProtoPacket
     qRegisterMetaType<EleaphRpcPacket>("EleaphRpcPacket");
@@ -18,7 +18,7 @@ EleaphProtoRPC::EleaphProtoRPC(QObject *parent, quint32 maxDataLength) : IEleaph
 /*
  * registerRPCMethod - register RPC Method for Async DataPacket handling
  */
-void EleaphProtoRPC::registerRPCMethod(QString strMethod, QObject *receiver, const char *member, bool singleShot,
+void EleaphRpc::registerRPCMethod(QString strMethod, QObject *receiver, const char *member, bool singleShot,
                                        EleaphRpcPacketMetaEvent event0,
                                        EleaphRpcPacketMetaEvent event1,
                                        EleaphRpcPacketMetaEvent event2,
@@ -75,7 +75,7 @@ void EleaphProtoRPC::registerRPCMethod(QString strMethod, QObject *receiver, con
     this->mapRPCFunctions.insertMulti(strMethod, QSharedPointer<EleaphRpcDelegate>(delegate));
 }
 
-void EleaphProtoRPC::unregisterRPCMethod(QString strMethod, QObject *receiver, const char *member)
+void EleaphRpc::unregisterRPCMethod(QString strMethod, QObject *receiver, const char *member)
 {
     // if no receiver was set, remove all registered procedures for given RPC-function-name
     if(!receiver) {
@@ -98,7 +98,7 @@ void EleaphProtoRPC::unregisterRPCMethod(QString strMethod, QObject *receiver, c
     }
 }
 
-void EleaphProtoRPC::unregisterRPCMethod(QObject *receiver, const char *member)
+void EleaphRpc::unregisterRPCMethod(QObject *receiver, const char *member)
 {
     // normalize method
     QByteArray methodNormalized = (member) ? this->extractMethodName(member) : QByteArray();
@@ -120,7 +120,7 @@ void EleaphProtoRPC::unregisterRPCMethod(QObject *receiver, const char *member)
 /*
  * sendRPCDataPacket - OVERLOADED: send an RPC DataPacket to given Device
  */
-void EleaphProtoRPC::sendRPCDataPacket(QIODevice *device, QString strProcedureName, char *data, int length)
+void EleaphRpc::sendRPCDataPacket(QIODevice *device, QString strProcedureName, char *data, int length)
 {
     return this->sendRPCDataPacket(device, strProcedureName, QByteArray(data, length));
 }
@@ -128,7 +128,7 @@ void EleaphProtoRPC::sendRPCDataPacket(QIODevice *device, QString strProcedureNa
 /*
  * sendRPCDataPacket - OVERLOADED: send an RPC DataPacket to given Device
  */
-void EleaphProtoRPC::sendRPCDataPacket(QIODevice *device, QString strProcedureName, std::string data)
+void EleaphRpc::sendRPCDataPacket(QIODevice *device, QString strProcedureName, std::string data)
 {
     return this->sendRPCDataPacket(device, strProcedureName, QByteArray(data.c_str(), data.length()));
 }
@@ -136,7 +136,7 @@ void EleaphProtoRPC::sendRPCDataPacket(QIODevice *device, QString strProcedureNa
 /*
  * sendRPCDataPacket - send an RPC DataPacket to given Device
  */
-void EleaphProtoRPC::sendRPCDataPacket(QIODevice *device, QString strProcedureName, QByteArray data)
+void EleaphRpc::sendRPCDataPacket(QIODevice *device, QString strProcedureName, QByteArray data)
 {
     // create content length with the help of Qt's Endian method qToBigEndian
     qint16 intDataLength = strProcedureName.length();
@@ -150,7 +150,7 @@ void EleaphProtoRPC::sendRPCDataPacket(QIODevice *device, QString strProcedureNa
     this->sendDataPacket(device, &data);
 }
 
-EleaphRpcPacket EleaphProtoRPC::waitAsyncForPacket(QString strMethod)
+EleaphRpcPacket EleaphRpc::waitAsyncForPacket(QString strMethod)
 {
     EleaphRpcAsyncPacketWaiter packetWaiter(this, strMethod);
 
@@ -171,7 +171,7 @@ EleaphRpcPacket EleaphProtoRPC::waitAsyncForPacket(QString strMethod)
 /*
  * newDataPacketReceived - parse the new received dataPacket and forward it to registered Delegate(s)
  */
-void EleaphProtoRPC::newDataPacketReceived(EleaphPacket *dataPacket)
+void EleaphRpc::newDataPacketReceived(EleaphPacket *dataPacket)
 {
     // extract rpc method name from packet with the help of Qt's Endian method qFromBigEndian
     qint16* ptrPacketLength = (qint16*)dataPacket->baRawPacketData->data();
@@ -207,12 +207,12 @@ void EleaphProtoRPC::newDataPacketReceived(EleaphPacket *dataPacket)
     }
 }
 
-void EleaphProtoRPC::deviceAdded(QIODevice *device)
+void EleaphRpc::deviceAdded(QIODevice *device)
 {
     emit this->sigDeviceAdded(device);
 }
 
-void EleaphProtoRPC::deviceRemoved(QIODevice *device)
+void EleaphRpc::deviceRemoved(QIODevice *device)
 {
     emit this->sigDeviceRemoved(device);
 }
@@ -222,7 +222,7 @@ void EleaphProtoRPC::deviceRemoved(QIODevice *device)
 // private slots
 //
 
-void EleaphProtoRPC::unregisterRPCObject()
+void EleaphRpc::unregisterRPCObject()
 {
     QObject *objToUnregister = this->sender();
 
@@ -239,7 +239,7 @@ void EleaphProtoRPC::unregisterRPCObject()
 /*
  * extractMethodName - normalize SIGNAL and SLOT functionname to normal methodname
  */
-QByteArray EleaphProtoRPC::extractMethodName(const char *member)
+QByteArray EleaphRpc::extractMethodName(const char *member)
 {
     // code from qt source (4.8.2)
     // src: qtimer.cpp

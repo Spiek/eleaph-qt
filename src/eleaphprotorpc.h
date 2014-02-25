@@ -17,7 +17,7 @@
 #include <QtCore/QSharedPointer>
 
 // forward declaration of file classes (some modules need classes from this module)
-class EleaphProtoRPC;
+class EleaphRpc;
 
 // rpc modules
 #include "eleaphrpc_packet.h"
@@ -28,7 +28,7 @@ class EleaphProtoRPC;
 //
 // Main Eleaphrpc Packet System
 //
-class EleaphProtoRPC : public IEleaph
+class EleaphRpc : public IEleaph
 {
     Q_OBJECT
     signals:
@@ -37,7 +37,7 @@ class EleaphProtoRPC : public IEleaph
 
     public:
         // con / decon
-        EleaphProtoRPC(QObject *parent = 0, quint32 maxDataLength = 20971520);
+        EleaphRpc(QObject *parent = 0, quint32 maxDataLength = 20971520);
 
         //
         // RPC funtions

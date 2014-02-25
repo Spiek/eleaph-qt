@@ -1,6 +1,6 @@
 #include "eleaphrpc_asyncpacketwaiter.h"
 
-EleaphRpcAsyncPacketWaiter::EleaphRpcAsyncPacketWaiter(EleaphProtoRPC *eleaphProto, QString strMethod)
+EleaphRpcAsyncPacketWaiter::EleaphRpcAsyncPacketWaiter(EleaphRpc *eleaphProto, QString strMethod)
 {
     eleaphProto->registerRPCMethod(strMethod, this, SLOT(packetReceived(EleaphRpcPacket)), true);
 }

@@ -17,7 +17,7 @@ class EleaphRpcAsyncPacketWaiter : public QObject
 
     public:
         EleaphRpcPacket receivedDataPacket;
-        EleaphRpcAsyncPacketWaiter(EleaphProtoRPC *eleaphProto, QString strMethod);
+        EleaphRpcAsyncPacketWaiter(EleaphRpc *eleaphProto, QString strMethod);
 
     public slots:
         void packetReceived(EleaphRpcPacket dataPacket);
