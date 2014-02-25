@@ -23,9 +23,7 @@ class EleaphProtoRPC;
 #include "eleaphrpc_packet.h"
 #include "eleaphrpc_packetmetaevent.h"
 #include "eleaphrpc_asyncpacketwaiter.h"
-
-// forward declarations
-class EleaphRpcPacketHandler;
+#include "eleaphrpc_packethandler.h"
 
 //
 // Main Eleaphrpc Packet System
@@ -38,15 +36,6 @@ class EleaphProtoRPC : public IEleaph
         void sigDeviceRemoved(QIODevice* device);
 
     public:
-        // Delegate (defines a registered RPC Method)
-        struct Delegate
-        {
-            QObject* object;
-            QByteArray method;
-            QSharedPointer<EleaphRpcPacketHandler> eventHandler;
-            bool singleShot;
-        };
-
         // con / decon
         EleaphProtoRPC(QObject *parent = 0, quint32 maxDataLength = 20971520);
 
@@ -78,93 +67,11 @@ class EleaphProtoRPC : public IEleaph
 
     private:
         // rpc members
-        QMultiMap<QString, QSharedPointer<EleaphProtoRPC::Delegate> > mapRPCFunctions;
+        QMultiMap<QString, QSharedPointer<EleaphRpcDelegate> > mapRPCFunctions;
 
         // helper methods
         QByteArray extractMethodName(const char* method);
 };
 
-class EleaphRpcPacketHandler : public QObject
-{
-    Q_OBJECT
-    public:
-        enum class EventResult {
-            Ok = 0,
-            Ignore = 1,
-            ProtocolViolation = 2
-        };
-        EleaphRpcPacketHandler(QList<EleaphRpcPacketMetaEvent> events) { this->lstEvents = events; qRegisterMetaType<EleaphRpcPacketHandler::EventResult>("EventResult"); }
-
-    public slots:
-        void processPacket(QSharedPointer<EleaphProtoRPC::Delegate> delegate, EleaphRpcPacket packet)
-        {
-            // simplefy some vars
-            EleaphProtoRPC::Delegate *pDelegate = delegate.data();
-
-			// process all "beforePacketProcess" Events, if one event result with false, abort packet process
-            if(!this->processEvent(pDelegate, packet, EleaphRpcPacketMetaEvent::Type::Before)) {
-                return;
-            }
-
-            // simplefy the delegate
-            QObject* object = delegate->object;
-            QByteArray method = delegate->method;
-
-            // call delegate syncronly (because we are in the receiver thread)
-            QMetaObject::invokeMethod(object, method.constData(), Qt::DirectConnection, Q_ARG(EleaphRpcPacket, packet));
-
-            // process all "afterPacketProcess" Events
-            this->processEvent(pDelegate, packet, EleaphRpcPacketMetaEvent::Type::After);
-        }
-
-    private:
-        QList<EleaphRpcPacketMetaEvent> lstEvents;
-
-        bool processEvent(EleaphProtoRPC::Delegate* delegate, EleaphRpcPacket packet, EleaphRpcPacketMetaEvent::Type type)
-        {
-            // so let us loop all events
-            foreach(EleaphRpcPacketMetaEvent event, this->lstEvents) {
-                // only process needed events and valid ones
-                if(event.type == EleaphRpcPacketMetaEvent::Type::Invalid || event.type != type) {
-                    continue;
-                }
-
-                // simplefy objects
-                QObject* object = event.receiver;
-                const QMetaObject* metaObject = object->metaObject();
-
-                QString strEventMethodName = event.strEventSlotName;
-                if(!strEventMethodName.isEmpty() && metaObject->indexOfMethod(QMetaObject::normalizedSignature((strEventMethodName + "(EleaphProtoRPC::Delegate*,EleaphRpcPacket,EleaphRpcPacketHandler::EventResult*)").toStdString().c_str())) != -1) {
-                    EventResult eventResult = EventResult::Ok;
-                    QMetaObject::invokeMethod(object, strEventMethodName.toStdString().c_str(), Qt::DirectConnection, Q_ARG(EleaphProtoRPC::Delegate*, delegate), Q_ARG(EleaphRpcPacket, packet), Q_ARG(EleaphRpcPacketHandler::EventResult*, &eventResult));
-
-                    // if event handler Results with false, ignore package
-                    if(!this->handleEventResult(eventResult, packet)) {
-                        return false;
-                    }
-                }
-            }
-
-            // process event
-            return true;
-        }
-
-        bool handleEventResult(EventResult eventResult, EleaphRpcPacket packet)
-        {
-            // just ignore packet
-            if(eventResult == EventResult::Ignore) {
-                return false;
-            }
-
-            // kill peer on protocol violation and ignore package
-            else if(eventResult == EventResult::ProtocolViolation) {
-                packet.data()->ioPacketDevice->deleteLater();
-                return false;
-            }
-
-            // ... otherwise everything is okay
-            return true;
-        }
-};
 
 #endif // ELEAPHPROTORPC_H
