@@ -9,11 +9,13 @@ CONFIG += c++11
 
 # Sources
 SOURCES +=  $$PWD"/src/ieleaph.cpp" \
-			$$PWD"/src/eleaphprotorpc.cpp"
+            $$PWD"/src/eleaphprotorpc.cpp" \
+            $$PWD"/src/eleaphrpc_packetmetaevent.cpp"
 
 # Headers
 HEADERS +=  $$PWD"/src/ieleaph.h" \
-			$$PWD"/src/eleaphprotorpc.h"
+            $$PWD"/src/eleaphprotorpc.h" \
+            $$PWD"/src/eleaphrpc_packetmetaevent.h"
 
 # include path
 INCLUDEPATH += "include/"
