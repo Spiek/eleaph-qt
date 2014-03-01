@@ -8,7 +8,7 @@
 
 EleaphRpcAsyncPacketWaiter::EleaphRpcAsyncPacketWaiter(EleaphRpc *eleaphProto, QString strMethod)
 {
-    eleaphProto->registerRPCMethod(strMethod, this, SLOT(packetReceived(EleaphRpcPacket)), true);
+    eleaphProto->registerRpcMethod(strMethod, this, SLOT(packetReceived(EleaphRpcPacket)), true);
 }
 
 void EleaphRpcAsyncPacketWaiter::packetReceived(EleaphRpcPacket dataPacket)

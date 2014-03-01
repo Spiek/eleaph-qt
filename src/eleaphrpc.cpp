@@ -18,7 +18,7 @@ EleaphRpc::EleaphRpc(QObject *parent, quint32 maxDataLength) : IEleaph(maxDataLe
 /*
  * registerRPCMethod - register RPC Method for Async DataPacket handling
  */
-void EleaphRpc::registerRPCMethod(QString strMethod, QObject *receiver, const char *member, bool singleShot,
+void EleaphRpc::registerRpcMethod(QString strMethod, QObject *receiver, const char *member, bool singleShot,
                                        EleaphRpcPacketMetaEvent event0,
                                        EleaphRpcPacketMetaEvent event1,
                                        EleaphRpcPacketMetaEvent event2,
