@@ -69,7 +69,7 @@ void EleaphRpc::registerRpcMethod(QString strMethod, QObject *receiver, const ch
     delegate->eventHandler->moveToThread(receiver->thread());
 
     // if receiver was destroyed, remove it's rpc methods
-    this->connect(receiver, SIGNAL(destroyed()), this, SLOT(unregisterRPCObject()));
+    this->connect(receiver, SIGNAL(destroyed()), this, SLOT(unregisterRpcObject()));
 
     // ... and save the informations
     this->mapRPCFunctions.insertMulti(strMethod, QSharedPointer<EleaphRpcDelegate>(delegate));
@@ -222,12 +222,15 @@ void EleaphRpc::deviceRemoved(QIODevice *device)
 // private slots
 //
 
-void EleaphRpc::unregisterRPCObject()
+void EleaphRpc::unregisterRpcObject()
 {
+    // get sender object
     QObject *objToUnregister = this->sender();
 
-    // unregister all rpc methods which match on object
-    return this->unregisterRPCMethod(objToUnregister);
+    // if object is valid, unregister all rpc methods which are connected to the object
+    if(objToUnregister) {
+        this->unregisterRPCMethod(objToUnregister);
+    }
 }
 
 

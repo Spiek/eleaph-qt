@@ -35,6 +35,9 @@ class EleaphRpc : public IEleaph
         void sigDeviceAdded(QIODevice* device);
         void sigDeviceRemoved(QIODevice* device);
 
+    public slots:
+        void unregisterRpcObject();
+
     public:
         // con / decon
         EleaphRpc(QObject *parent = 0, quint32 maxDataLength = 20971520);
@@ -61,9 +64,6 @@ class EleaphRpc : public IEleaph
         virtual void newDataPacketReceived(EleaphPacket *dataPacket);
         virtual void deviceAdded(QIODevice* device);
         virtual void deviceRemoved(QIODevice* device);
-
-    private slots:
-        void unregisterRPCObject();
 
     private:
         // rpc members
