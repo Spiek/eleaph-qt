@@ -24,7 +24,7 @@ class MyEleaphServer : public QObject
             this->eleaphRPC->startTcpListening(1234);
 
             // register ping packettype (which will be sent from the client)
-            eleaphRPC->registerRPCMethod("ping", this, SLOT(handlePingPacket(EleaphRpcPacket)));
+            eleaphRPC->registerRpcMethod("ping", this, SLOT(handlePingPacket(EleaphRpcPacket)));
         }
 
     public slots:

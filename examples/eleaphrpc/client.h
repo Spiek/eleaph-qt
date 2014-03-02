@@ -30,7 +30,7 @@ class MyEleaphClient : public QObject
             this->eleaphRPC->addDevice(this->socketServer);
 
             // register pong packettype (which will be sent back from the server)
-            eleaphRPC->registerRPCMethod("pong", this, SLOT(handlePongPacket(EleaphRpcPacket)));
+            eleaphRPC->registerRpcMethod("pong", this, SLOT(handlePongPacket(EleaphRpcPacket)));
 
             // init simple One Second timer
             this->connect(&this->timer, SIGNAL(timeout()), this, SLOT(timerReached()));
