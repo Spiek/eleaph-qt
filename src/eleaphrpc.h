@@ -15,6 +15,8 @@
 #include <QtCore/QMetaObject>
 #include <QtCore/QEventLoop>
 #include <QtCore/QSharedPointer>
+#include <QtCore/QQueue>
+#include <QtCore/QThread>
 
 // forward declaration of file classes (some modules need classes from this module)
 class EleaphRpc;
@@ -37,6 +39,7 @@ class EleaphRpc : public IEleaph
 
     public slots:
         void unregisterRpcObject();
+        void unregisterRpcWorkerObject();
 
     public:
         // con / decon
@@ -46,10 +49,16 @@ class EleaphRpc : public IEleaph
         // RPC funtions
         //
 
-        // register/unregister
+        // register rpc methods
         void registerRpcMethod(QString strMethod, QObject* receiver, const char *member, bool singleShot = false, EleaphRpcPacketMetaEvent event0 = EleaphRpcPacketMetaEvent(), EleaphRpcPacketMetaEvent event1 = EleaphRpcPacketMetaEvent(), EleaphRpcPacketMetaEvent event2 = EleaphRpcPacketMetaEvent(), EleaphRpcPacketMetaEvent event3 = EleaphRpcPacketMetaEvent(), EleaphRpcPacketMetaEvent event4 = EleaphRpcPacketMetaEvent(), EleaphRpcPacketMetaEvent event5 = EleaphRpcPacketMetaEvent(), EleaphRpcPacketMetaEvent event6 = EleaphRpcPacketMetaEvent(), EleaphRpcPacketMetaEvent event7 = EleaphRpcPacketMetaEvent());
-        void unregisterRPCMethod(QString strMethod, QObject* receiver = 0, const char *member = 0);
-        void unregisterRPCMethod(QObject* receiver, const char *member = 0);
+        void registerRpcMethodWorker(QString strMethod, QObject* receiver, const char *member, bool singleShot = false, EleaphRpcPacketMetaEvent event0 = EleaphRpcPacketMetaEvent(), EleaphRpcPacketMetaEvent event1 = EleaphRpcPacketMetaEvent(), EleaphRpcPacketMetaEvent event2 = EleaphRpcPacketMetaEvent(), EleaphRpcPacketMetaEvent event3 = EleaphRpcPacketMetaEvent(), EleaphRpcPacketMetaEvent event4 = EleaphRpcPacketMetaEvent(), EleaphRpcPacketMetaEvent event5 = EleaphRpcPacketMetaEvent(), EleaphRpcPacketMetaEvent event6 = EleaphRpcPacketMetaEvent(), EleaphRpcPacketMetaEvent event7 = EleaphRpcPacketMetaEvent());
+
+        // unregister rpc methods
+        void unregisterRpcMethod(QString strMethod, QObject* receiver = 0, const char *member = 0);
+        void unregisterRpcMethod(QObject* receiver, const char *member = 0);
+
+        void unregisterRpcMethodWorker(QString strMethod, QObject* receiver = 0, const char *member = 0);
+        void unregisterRpcMethodWorker(QObject* receiver, const char *member = 0);
 
         // sending
         void sendRPCDataPacket(QIODevice *device, QString strProcedureName, std::string);
@@ -66,8 +75,15 @@ class EleaphRpc : public IEleaph
         virtual void deviceRemoved(QIODevice* device);
 
     private:
-        // rpc members
+        // logic Unifier methods
+        void registerRpcMethodLogicUnifier(QString strMethod, QObject* receiver, const char *member, bool isWorker, bool singleShot = false, EleaphRpcPacketMetaEvent event0 = EleaphRpcPacketMetaEvent(), EleaphRpcPacketMetaEvent event1 = EleaphRpcPacketMetaEvent(), EleaphRpcPacketMetaEvent event2 = EleaphRpcPacketMetaEvent(), EleaphRpcPacketMetaEvent event3 = EleaphRpcPacketMetaEvent(), EleaphRpcPacketMetaEvent event4 = EleaphRpcPacketMetaEvent(), EleaphRpcPacketMetaEvent event5 = EleaphRpcPacketMetaEvent(), EleaphRpcPacketMetaEvent event6 = EleaphRpcPacketMetaEvent(), EleaphRpcPacketMetaEvent event7 = EleaphRpcPacketMetaEvent());
+
+        // base rpc system
         QMultiMap<QString, QSharedPointer<EleaphRpcDelegate> > mapRPCFunctions;
+
+        // threaded worker rpc system
+        QMap<QString, QSharedPointer<QMultiMap<QThread*, QSharedPointer<EleaphRpcDelegate> > > > mapWorkerRpcFunctions;
+        QQueue<QThread*> queueWorkerThreads;
 
         // helper methods
         QByteArray extractMethodName(const char* method);

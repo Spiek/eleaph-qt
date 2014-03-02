@@ -29,6 +29,35 @@ void EleaphRpc::registerRpcMethod(QString strMethod, QObject *receiver, const ch
                                        EleaphRpcPacketMetaEvent event7)
 
 {
+    return this->registerRpcMethodLogicUnifier(strMethod, receiver, member, false, singleShot, event0, event1, event2, event3, event4, event5, event6, event7);
+}
+
+void EleaphRpc::registerRpcMethodWorker(QString strMethod, QObject *receiver, const char *member, bool singleShot,
+                                       EleaphRpcPacketMetaEvent event0,
+                                       EleaphRpcPacketMetaEvent event1,
+                                       EleaphRpcPacketMetaEvent event2,
+                                       EleaphRpcPacketMetaEvent event3,
+                                       EleaphRpcPacketMetaEvent event4,
+                                       EleaphRpcPacketMetaEvent event5,
+                                       EleaphRpcPacketMetaEvent event6,
+                                       EleaphRpcPacketMetaEvent event7)
+
+{
+    return this->registerRpcMethodLogicUnifier(strMethod, receiver, member, true, singleShot, event0, event1, event2, event3, event4, event5, event6, event7);
+}
+
+
+void EleaphRpc::registerRpcMethodLogicUnifier(QString strMethod, QObject *receiver, const char *member, bool isWorker, bool singleShot,
+                                  EleaphRpcPacketMetaEvent event0,
+                                  EleaphRpcPacketMetaEvent event1,
+                                  EleaphRpcPacketMetaEvent event2,
+                                  EleaphRpcPacketMetaEvent event3,
+                                  EleaphRpcPacketMetaEvent event4,
+                                  EleaphRpcPacketMetaEvent event5,
+                                  EleaphRpcPacketMetaEvent event6,
+                                  EleaphRpcPacketMetaEvent event7)
+
+{
     // move all events to list
     QList<EleaphRpcPacketMetaEvent> events;
     if(event0.type != EleaphRpcPacketMetaEvent::Type::Invalid) events.append(event0);
@@ -68,14 +97,34 @@ void EleaphRpc::registerRpcMethod(QString strMethod, QObject *receiver, const ch
     delegate->eventHandler.reset(new EleaphRpcPacketHandler(events));
     delegate->eventHandler->moveToThread(receiver->thread());
 
-    // if receiver was destroyed, remove it's rpc methods
-    this->connect(receiver, SIGNAL(destroyed()), this, SLOT(unregisterRpcObject()));
+    // add rpc function to worker system
+    if(isWorker) {
+        // if receiver was destroyed, remove it's rpc methods
+        this->connect(receiver, SIGNAL(destroyed()), this, SLOT(unregisterRpcWorkerObject()));
 
-    // ... and save the informations
-    this->mapRPCFunctions.insertMulti(strMethod, QSharedPointer<EleaphRpcDelegate>(delegate));
+        // if not present, construct container
+        if(!this->mapWorkerRpcFunctions.contains(strMethod)) {
+            this->mapWorkerRpcFunctions.insert(strMethod, QSharedPointer<QMultiMap<QThread*, QSharedPointer<EleaphRpcDelegate> > >(new QMultiMap<QThread*, QSharedPointer<EleaphRpcDelegate> >));
+        }
+
+        // insert worker method
+        this->mapWorkerRpcFunctions.value(strMethod)->insertMulti(receiver->thread(), QSharedPointer<EleaphRpcDelegate>(delegate));
+
+        // save worker thread
+        this->queueWorkerThreads.enqueue(receiver->thread());
+    }
+
+    // add rpc function to base system
+    else {
+        // if receiver was destroyed, remove it's rpc methods
+        this->connect(receiver, SIGNAL(destroyed()), this, SLOT(unregisterRpcObject()));
+
+        // insert base method
+        this->mapRPCFunctions.insertMulti(strMethod, QSharedPointer<EleaphRpcDelegate>(delegate));
+    }
 }
 
-void EleaphRpc::unregisterRPCMethod(QString strMethod, QObject *receiver, const char *member)
+void EleaphRpc::unregisterRpcMethod(QString strMethod, QObject *receiver, const char *member)
 {
     // if no receiver was set, remove all registered procedures for given RPC-function-name
     if(!receiver) {
@@ -98,7 +147,7 @@ void EleaphRpc::unregisterRPCMethod(QString strMethod, QObject *receiver, const 
     }
 }
 
-void EleaphRpc::unregisterRPCMethod(QObject *receiver, const char *member)
+void EleaphRpc::unregisterRpcMethod(QObject *receiver, const char *member)
 {
     // normalize method
     QByteArray methodNormalized = (member) ? this->extractMethodName(member) : QByteArray();
@@ -116,6 +165,54 @@ void EleaphRpc::unregisterRPCMethod(QObject *receiver, const char *member)
     }
 }
 
+void EleaphRpc::unregisterRpcMethodWorker(QString strMethod, QObject *receiver, const char *member)
+{
+    // if no receiver was set, remove all registered procedures for given RPC-function-name
+    if(!receiver) {
+        this->mapWorkerRpcFunctions.remove(strMethod);
+    }
+
+    // otherwise we have to loop all registered procedures to determinate the right procedures for deletion
+    else {
+        // normalize method
+        QByteArray methodNormalized = (member) ? this->extractMethodName(member) : QByteArray();
+
+        // loop all registered threads for given RPC-function-name
+        QSharedPointer<QMultiMap<QThread*, QSharedPointer<EleaphRpcDelegate> > > delegateThread;
+        foreach(delegateThread, this->mapWorkerRpcFunctions.values(strMethod)) {
+            // loop all registered procedures for given RPC-function-name
+            foreach(QSharedPointer<EleaphRpcDelegate> delegate, delegateThread->values()) {
+                // - if member was set, remove only RPC methods which match on receiver and on the member
+                // - if no member was set, remove only RPC methods which match only on the receiver
+                if((!member || delegate->method == methodNormalized) && delegate->object == receiver) {
+                    this->mapRPCFunctions.remove(strMethod, delegate);
+                }
+            }
+        }
+    }
+}
+
+void EleaphRpc::unregisterRpcMethodWorker(QObject *receiver, const char *member)
+{
+    // normalize method
+    QByteArray methodNormalized = (member) ? this->extractMethodName(member) : QByteArray();
+
+    // loop all registered rpc methods
+    foreach(QString strMethod, this->mapRPCFunctions.keys()) {
+        // loop all registered threads for given RPC-function-name
+        QSharedPointer<QMultiMap<QThread*, QSharedPointer<EleaphRpcDelegate> > > delegateThread;
+        foreach(delegateThread, this->mapWorkerRpcFunctions.values(strMethod)) {
+            // loop all registered delegates for rpc method
+            foreach(QSharedPointer<EleaphRpcDelegate> delegate, delegateThread->values()) {
+                // - if member was set, remove only RPC methods which match on receiver and on the member
+                // - if no member was set, remove only RPC methods which match only on the receiver
+                if(delegate->object == receiver && (!member || delegate.data()->method == methodNormalized)) {
+                    this->mapRPCFunctions.remove(strMethod, delegate);
+                }
+           }
+       }
+    }
+}
 
 /*
  * sendRPCDataPacket - OVERLOADED: send an RPC DataPacket to given Device
@@ -195,14 +292,49 @@ void EleaphRpc::newDataPacketReceived(EleaphPacket *dataPacket)
     // set EleaphRPCDataPacket data
     rpcDataPacket->strMethodName = strMethodName;
 
-    // ... loop all delegates which are registered for strMethodName, and invoke them one by one
-    foreach(QSharedPointer<EleaphRpcDelegate> delegate, this->mapRPCFunctions.values(strMethodName)) {
-        // let the EleaphAdditionalEventHandler do the rest (int the event loop of the receivers thread!)
-        emit delegate->eventHandler->processPacket(delegate, watcher);
+    //
+    // process all registered "base" and "worker" rpc methods
+    // - for elimination of double code, we loop two times to process the events:
+    //      - 1. run: process "base" events
+    //      - 2. run: process "worker" events (only send this events to one worker of many workers!)
+    //
+    for(int i = 0;i < 2; i++) {
+        // define default values
+        QList<QSharedPointer<EleaphRpcDelegate> > lstRpcMethodsToProcess;
+        QThread* workerThread = 0;
 
-        // unregister single shot delegates (we can do it here, because event allready be handled!)
-        if(delegate->singleShot) {
-            this->mapRPCFunctions.remove(strMethodName, delegate);
+        // first loop, get all "base" rpc methods which should be called
+        if(i == 0) {
+            lstRpcMethodsToProcess = this->mapRPCFunctions.values(strMethodName);
+        }
+
+        // second loop, get all "worker" rpc methods which should be called (but only process if at least on worker thread is available!)
+        else if(!this->queueWorkerThreads.isEmpty()) {
+            // get next worker thread (after getting a thread to process, enqueue the same thread again (at the end), so that we have an thread rotater!)
+            workerThread = this->queueWorkerThreads.dequeue();
+            this->queueWorkerThreads.enqueue(workerThread);
+
+            // get all worker methods for given thread
+            lstRpcMethodsToProcess = this->mapWorkerRpcFunctions.value(strMethodName)->values(workerThread);
+        }
+
+        // loop all delegates and invoke them one by one
+        foreach(QSharedPointer<EleaphRpcDelegate> delegate, lstRpcMethodsToProcess) {
+            // let the EleaphAdditionalEventHandler do the rest (in the event loop of the receivers thread!)
+            emit delegate->eventHandler->processPacket(delegate, watcher);
+
+            // unregister single shot delegates (we can do it here, because eventHandler allready has all informations to handle the event!)
+            if(delegate->singleShot) {
+                // if we are in the first run, delete "base" delegate
+                if(!workerThread) {
+                    this->mapRPCFunctions.remove(strMethodName, delegate);
+                }
+
+                // if we are in the second run, delete "worker" delegate
+                else {
+                    this->mapWorkerRpcFunctions.value(strMethodName)->remove(workerThread, delegate);
+                }
+            }
         }
     }
 }
@@ -224,16 +356,25 @@ void EleaphRpc::deviceRemoved(QIODevice *device)
 
 void EleaphRpc::unregisterRpcObject()
 {
+    // take sender object
+    QObject *objToUnregister = this->sender();
+
+    // if object is valid, unregister all rpc methods which are connected to the object
+    if(objToUnregister) {
+        this->unregisterRpcMethod(objToUnregister);
+    }
+}
+
+void EleaphRpc::unregisterRpcWorkerObject()
+{
     // get sender object
     QObject *objToUnregister = this->sender();
 
     // if object is valid, unregister all rpc methods which are connected to the object
     if(objToUnregister) {
-        this->unregisterRPCMethod(objToUnregister);
+        this->unregisterRpcMethodWorker(objToUnregister);
     }
 }
-
-
 
 //
 // Helper Methods
