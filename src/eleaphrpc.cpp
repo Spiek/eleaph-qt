@@ -111,7 +111,9 @@ void EleaphRpc::registerRpcMethodLogicUnifier(QString strMethod, QObject *receiv
         this->mapWorkerRpcFunctions.value(strMethod)->insertMulti(receiver->thread(), QSharedPointer<EleaphRpcDelegate>(delegate));
 
         // save worker thread
-        this->queueWorkerThreads.enqueue(receiver->thread());
+        if(!this->queueWorkerThreads.contains(receiver->thread())) {
+            this->queueWorkerThreads.enqueue(receiver->thread());
+        }
     }
 
     // add rpc function to base system
@@ -276,7 +278,7 @@ void EleaphRpc::newDataPacketReceived(EleaphPacket *dataPacket)
     QString strMethodName = QString(dataPacket->baRawPacketData->mid(sizeof(qint16), lenData));
 
     // if given procedure name of the packet is not registered, then cleanup and exit
-    if(!this->mapRPCFunctions.contains(strMethodName)) {
+    if(!this->mapRPCFunctions.contains(strMethodName) && !this->mapWorkerRpcFunctions.contains(strMethodName)) {
         return;
     }
 
@@ -304,18 +306,21 @@ void EleaphRpc::newDataPacketReceived(EleaphPacket *dataPacket)
         QThread* workerThread = 0;
 
         // first loop, get all "base" rpc methods which should be called
-        if(i == 0) {
+        if(i == 0 && this->mapRPCFunctions.contains(strMethodName)) {
             lstRpcMethodsToProcess = this->mapRPCFunctions.values(strMethodName);
         }
 
         // second loop, get all "worker" rpc methods which should be called (but only process if at least on worker thread is available!)
-        else if(!this->queueWorkerThreads.isEmpty()) {
+        else if(this->mapWorkerRpcFunctions.contains(strMethodName)) {
             // get next worker thread (after getting a thread to process, enqueue the same thread again (at the end), so that we have an thread rotater!)
             workerThread = this->queueWorkerThreads.dequeue();
             this->queueWorkerThreads.enqueue(workerThread);
 
             // get all worker methods for given thread
             lstRpcMethodsToProcess = this->mapWorkerRpcFunctions.value(strMethodName)->values(workerThread);
+
+            // exit loop (if we reach this position on loop one!)
+            i = 2;
         }
 
         // loop all delegates and invoke them one by one
