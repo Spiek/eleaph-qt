@@ -200,7 +200,7 @@ void EleaphRpc::unregisterRpcMethodWorker(QObject *receiver, const char *member)
 
     // loop all registered worker rpc methods
     foreach(QString strMethod, this->mapWorkerRpcFunctions.keys()) {
-        this->unregisterRpcMethod(strMethod, receiver, member);
+        this->unregisterRpcMethodWorker(strMethod, receiver, member);
     }
 }
 
