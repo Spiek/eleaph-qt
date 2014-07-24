@@ -138,11 +138,11 @@ void EleaphRpc::unregisterRpcMethod(QString strMethod, QObject *receiver, const 
         // normalize method
         QByteArray methodNormalized = (member) ? this->extractMethodName(member) : QByteArray();
 
-        // loop all registered procedures for given RPC-function-name
+        // loop all registered delegates for rpc method
         foreach(QSharedPointer<EleaphRpcDelegate> delegate, this->mapRPCFunctions.values(strMethod)) {
             // - if member was set, remove only RPC methods which match on receiver and on the member
             // - if no member was set, remove only RPC methods which match only on the receiver
-            if((!member || delegate->method == methodNormalized) && delegate->object == receiver) {
+            if(delegate->object == receiver && (!member || delegate->method == methodNormalized)) {
                 this->mapRPCFunctions.remove(strMethod, delegate);
             }
         }
@@ -151,19 +151,12 @@ void EleaphRpc::unregisterRpcMethod(QString strMethod, QObject *receiver, const 
 
 void EleaphRpc::unregisterRpcMethod(QObject *receiver, const char *member)
 {
-    // normalize method
-    QByteArray methodNormalized = (member) ? this->extractMethodName(member) : QByteArray();
+    // if receiver is not valid, exit
+    if(!receiver) return;
 
     // loop all registered rpc methods
     foreach(QString strMethod, this->mapRPCFunctions.keys()) {
-        // loop all registered delegates for rpc method
-        foreach(QSharedPointer<EleaphRpcDelegate> delegate, this->mapRPCFunctions.values(strMethod)) {
-            // - if member was set, remove only RPC methods which match on receiver and on the member
-            // - if no member was set, remove only RPC methods which match only on the receiver
-            if(delegate->object == receiver && (!member || delegate.data()->method == methodNormalized)) {
-                this->mapRPCFunctions.remove(strMethod, delegate);
-            }
-       }
+        this->unregisterRpcMethod(strMethod, receiver, member);
     }
 }
 
@@ -180,39 +173,34 @@ void EleaphRpc::unregisterRpcMethodWorker(QString strMethod, QObject *receiver, 
         QByteArray methodNormalized = (member) ? this->extractMethodName(member) : QByteArray();
 
         // loop all registered threads for given RPC-function-name
-        QSharedPointer<QMultiMap<QThread*, QSharedPointer<EleaphRpcDelegate> > > delegateThread;
-        foreach(delegateThread, this->mapWorkerRpcFunctions.values(strMethod)) {
+        QSharedPointer<QMultiMap<QThread*, QSharedPointer<EleaphRpcDelegate> > > delegateThreads = this->mapWorkerRpcFunctions.value(strMethod);
+        foreach(QThread *delegateThread, delegateThreads->keys()) {
             // loop all registered procedures for given RPC-function-name
-            foreach(QSharedPointer<EleaphRpcDelegate> delegate, delegateThread->values()) {
+            foreach(QSharedPointer<EleaphRpcDelegate> delegate, delegateThreads->values(delegateThread)) {
                 // - if member was set, remove only RPC methods which match on receiver and on the member
                 // - if no member was set, remove only RPC methods which match only on the receiver
                 if((!member || delegate->method == methodNormalized) && delegate->object == receiver) {
-                    this->mapRPCFunctions.remove(strMethod, delegate);
+                    delegateThreads->remove(delegateThread, delegate);
                 }
             }
         }
+
+        // if delegateThread map thread is empty, remove it
+        if(delegateThreads->empty()) this->mapWorkerRpcFunctions.remove(strMethod);
+
+        // oterwhise reset the new modified map
+        else this->mapWorkerRpcFunctions.insert(strMethod, delegateThreads);
     }
 }
 
 void EleaphRpc::unregisterRpcMethodWorker(QObject *receiver, const char *member)
 {
-    // normalize method
-    QByteArray methodNormalized = (member) ? this->extractMethodName(member) : QByteArray();
+    // if receiver is not valid, exit
+    if(!receiver) return;
 
-    // loop all registered rpc methods
-    foreach(QString strMethod, this->mapRPCFunctions.keys()) {
-        // loop all registered threads for given RPC-function-name
-        QSharedPointer<QMultiMap<QThread*, QSharedPointer<EleaphRpcDelegate> > > delegateThread;
-        foreach(delegateThread, this->mapWorkerRpcFunctions.values(strMethod)) {
-            // loop all registered delegates for rpc method
-            foreach(QSharedPointer<EleaphRpcDelegate> delegate, delegateThread->values()) {
-                // - if member was set, remove only RPC methods which match on receiver and on the member
-                // - if no member was set, remove only RPC methods which match only on the receiver
-                if(delegate->object == receiver && (!member || delegate.data()->method == methodNormalized)) {
-                    this->mapRPCFunctions.remove(strMethod, delegate);
-                }
-           }
-       }
+    // loop all registered worker rpc methods
+    foreach(QString strMethod, this->mapWorkerRpcFunctions.keys()) {
+        this->unregisterRpcMethod(strMethod, receiver, member);
     }
 }
 
