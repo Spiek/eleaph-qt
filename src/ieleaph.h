@@ -13,6 +13,7 @@
 #include <QtCore/QVariant>
 #include <QtCore/QtEndian>
 #include <QtCore/QMutex>
+#include <QtCore/QTimer>
 
 // qt network libs
 #include <QtNetwork/QTcpServer>
@@ -39,12 +40,21 @@
 
 
 //
-// KEEP ALIVE
+// ELEAPH DEVICE KEEP ALIVE SYSTEM
 //
-// Set QAbstractSocket::KeepAliveOption socket option of receiving peers to TCPPEER_KEEPALIVE
-// NOTE: see http://qt-project.org/doc/qt/qabstractsocket.html#SocketOption-enum
+// Eleaph Keep Alive Sender System so that Eleaph Devices stays alive
+// Note: This functionality is designed for QTcpSocket Devices
 //
-#define TCPPEER_KEEPALIVE 1
+// Who is sending Keep alive packages?:
+// 0 => No One (Keep Alive System Deactivated)
+// 1 => Every Device Added to EleaphRpc
+// 2 => Only Client (!tcpServer->isListening())
+// 3 => Only Server ( tcpServer->isListening())
+#define ELEAPH_KEEPALIVE_MODE 3
+
+// Keep alive intervall in milliseconds
+#define ELEAPH_KEEPALIVE_INTERVALL 60000
+
 
 struct EleaphPacket
 {
@@ -132,6 +142,7 @@ class IEleaph : public QObject
     private slots:
         void newTcpHost();
         void dataHandler();
+        void keepDevicesAlive();
 
     private:
         // dynamic members
@@ -139,6 +150,10 @@ class IEleaph : public QObject
 
         // members for tcpserver feature
         QTcpServer serverTcp;
+
+        // devices for keep alives
+        QTimer timerKeepAlive;
+        QList<QIODevice*> lstDevicesKeepAlive;
 };
 
 #endif // SQMPACKETHANDLER_H

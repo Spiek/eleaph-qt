@@ -18,6 +18,14 @@ IEleaph::IEleaph(quint32 maxDataLength, QObject *parent) : QObject(parent)
 {
     // save construct vars
     this->intMaxDataLength = maxDataLength;
+
+    // init keep alive timer (if wanted!)
+    if(ELEAPH_KEEPALIVE_MODE != 0) {
+        this->connect(&this->timerKeepAlive, SIGNAL(timeout()), this, SLOT(keepDevicesAlive()));
+        this->timerKeepAlive.setTimerType(Qt::VeryCoarseTimer);
+        this->timerKeepAlive.setInterval(ELEAPH_KEEPALIVE_INTERVALL);
+        QMetaObject::invokeMethod(&this->timerKeepAlive, "start", Qt::QueuedConnection);
+    }
 }
 
 /*
@@ -54,9 +62,12 @@ void IEleaph::addDevice(QIODevice* device, DeviceForgetOptions forgetoptions)
         this->connect(device, SIGNAL(destroyed()), this, SLOT(removeDevice()));
     }
 
-    // if we have a QTcpSocket-device set keepalive
-    if(dynamic_cast<QTcpSocket*>(device)) {
-        ((QTcpSocket*)device)->setSocketOption(QAbstractSocket::KeepAliveOption, TCPPEER_KEEPALIVE);
+    // check ELEAPHRPC_KEEPALIVE_MODE if EleaphRpc have to send keep alive packages to device
+    if(   ELEAPH_KEEPALIVE_MODE == 1 ||
+         (ELEAPH_KEEPALIVE_MODE == 2 && !this->serverTcp.isListening()) ||
+         (ELEAPH_KEEPALIVE_MODE == 3 &&  this->serverTcp.isListening()))
+    {
+        this->lstDevicesKeepAlive.append(device);
     }
 
     // call user implementation
@@ -85,6 +96,9 @@ void IEleaph::removeDevice(QIODevice *device)
     if(packet) {
         delete packet;
     }
+
+    // remove device from keep alive system
+    this->lstDevicesKeepAlive.removeOne(device);
 
     // call user implementation
     this->deviceRemoved(ioPacketDevice);
@@ -166,6 +180,14 @@ void IEleaph::dataHandler()
         ioPacketDevice->setProperty(PROPERTYNAME_PACKET, QVariant(QVariant::Invalid));
 
         /// </Read Content> <-- Content read complete!
+    }
+}
+
+void IEleaph::keepDevicesAlive()
+{
+    // check if everything is okay, and send keep alive
+    foreach(QIODevice* device, this->lstDevicesKeepAlive) {
+        this->sendDataPacket((QIODevice*)device, "");
     }
 }
 
