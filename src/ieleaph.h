@@ -37,6 +37,15 @@
 //
 #define PROPERTYNAME_PACKET "SQMPacketHandler_packet"
 
+
+//
+// KEEP ALIVE
+//
+// Set QAbstractSocket::KeepAliveOption socket option of receiving peers to TCPPEER_KEEPALIVE
+// NOTE: see http://qt-project.org/doc/qt/qabstractsocket.html#SocketOption-enum
+//
+#define TCPPEER_KEEPALIVE 1
+
 struct EleaphPacket
 {
     public:

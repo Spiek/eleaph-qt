@@ -177,6 +177,9 @@ void IEleaph::newTcpHost()
     this->connect(socket, SIGNAL(disconnected()), this, SLOT(removeDevice()));
     this->connect(socket, SIGNAL(disconnected()), this, SLOT(deleteLater()));
 
+    // set keep alive socket option if user want to
+    socket->setSocketOption(QAbstractSocket::KeepAliveOption, TCPPEER_KEEPALIVE);
+
     // add the device to packet parser and remove the device if it's destroyed
     // Note: we care about socket deletion!
     this->addDevice(socket, IEleaph::NeverForgetDevice);
