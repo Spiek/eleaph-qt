@@ -161,6 +161,9 @@ void IEleaph::dataHandler()
         /// </Read Header> <-- Header read complete!
         /// <Read Content>
 
+        // don't handle empty packets
+        if(packet->intPacktLength == 0) continue;
+
         // inform the outside world about packet download process
         this->packetDownloadProcess(ioPacketDevice, (intAvailableDataLength > packet->intPacktLength ? packet->intPacktLength : intAvailableDataLength ), packet->intPacktLength);
 
