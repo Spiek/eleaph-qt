@@ -54,6 +54,11 @@ void IEleaph::addDevice(QIODevice* device, DeviceForgetOptions forgetoptions)
         this->connect(device, SIGNAL(destroyed()), this, SLOT(removeDevice()));
     }
 
+    // if we have a QTcpSocket-device set keepalive
+    if(dynamic_cast<QTcpSocket*>(device)) {
+        ((QTcpSocket*)device)->setSocketOption(QAbstractSocket::KeepAliveOption, TCPPEER_KEEPALIVE);
+    }
+
     // call user implementation
     this->deviceAdded(device);
 }
@@ -176,9 +181,6 @@ void IEleaph::newTcpHost()
     // delete device on disconnect
     this->connect(socket, SIGNAL(disconnected()), this, SLOT(removeDevice()));
     this->connect(socket, SIGNAL(disconnected()), this, SLOT(deleteLater()));
-
-    // set keep alive socket option if user want to
-    socket->setSocketOption(QAbstractSocket::KeepAliveOption, TCPPEER_KEEPALIVE);
 
     // add the device to packet parser and remove the device if it's destroyed
     // Note: we care about socket deletion!
