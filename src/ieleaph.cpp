@@ -115,8 +115,8 @@ void IEleaph::dataHandler()
         return;
     }
 
-    // loop until socket is empty
-    while(PACKETLENGTHTYPE intAvailableDataLength = ioPacketDevice->bytesAvailable()) {
+    // loop as long device contains data
+    while(PACKETLENGTHTYPE intAvailableDataLength = ioPacketDevice->isOpen() ? 0 : ioPacketDevice->bytesAvailable()) {
 
         /// <Aquire Data Packet>
         // get the exesting data packet, or if it doesn't exist a 0 Pointer
@@ -152,17 +152,15 @@ void IEleaph::dataHandler()
             intAvailableDataLength -= sizeof(PACKETLENGTHTYPE);
 
             // security check:
-            // if content length is greater than the allowed intMaxDataLength, close the device immediately
-            if(packet->intPacktLength > this->intMaxDataLength) {
-                return ioPacketDevice->close();
-            }
+            // if content length is greater than the allowed intMaxDataLength, kill the device immediately
+            if(packet->intPacktLength > this->intMaxDataLength) goto kill;
         }
 
         /// </Read Header> <-- Header read complete!
         /// <Read Content>
 
-        // don't handle empty packets
-        if(packet->intPacktLength == 0) continue;
+        // cleanup and exit on empty packets
+        if(packet->intPacktLength == 0) goto cleanup_packet;
 
         // inform the outside world about packet download process
         this->packetDownloadProcess(ioPacketDevice, (intAvailableDataLength > packet->intPacktLength ? packet->intPacktLength : intAvailableDataLength ), packet->intPacktLength);
@@ -181,8 +179,17 @@ void IEleaph::dataHandler()
         // at this point the entire packet was read and sent:
         // now we delete used Packet-Cache property
         ioPacketDevice->setProperty(PROPERTYNAME_PACKET, QVariant(QVariant::Invalid));
+        continue;
 
         /// </Read Content> <-- Content read complete!
+
+        /// Error handling
+        kill:
+           ioPacketDevice->close();
+
+        cleanup_packet:
+           ioPacketDevice->setProperty(PROPERTYNAME_PACKET, QVariant(QVariant::Invalid));
+           delete packet;
     }
 }
 
