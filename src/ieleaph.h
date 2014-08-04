@@ -14,6 +14,7 @@
 #include <QtCore/QtEndian>
 #include <QtCore/QMutex>
 #include <QtCore/QTimer>
+#include <QtCore/QQueue>
 
 // qt network libs
 #include <QtNetwork/QTcpServer>
@@ -37,23 +38,6 @@
 // NOTE: don't use key names which start with _q_, because this will be used by Qt itself
 //
 #define PROPERTYNAME_PACKET "SQMPacketHandler_packet"
-
-
-//
-// ELEAPH DEVICE KEEP ALIVE SYSTEM
-//
-// Eleaph Keep Alive Sender System so that Eleaph Devices stays alive
-// Note: This functionality is designed for QTcpSocket Devices
-//
-// Who is sending Keep alive packages?:
-// 0 => No One (Keep Alive System Deactivated)
-// 1 => Every Device Added to EleaphRpc
-// 2 => Only Client (!tcpServer->isListening())
-// 3 => Only Server ( tcpServer->isListening())
-#define ELEAPH_KEEPALIVE_MODE 3
-
-// Keep alive intervall in milliseconds
-#define ELEAPH_KEEPALIVE_INTERVALL 60000
 
 
 struct EleaphPacket
@@ -118,6 +102,9 @@ class IEleaph : public QObject
         // start tcp listening
         bool startTcpListening(quint16 port, QHostAddress address = QHostAddress::Any);
 
+        // auto keep alive all added devices by sending a ping packet over device every intervallMsecs
+        void autoKeepAliveAddedDevices(quint32 intervallMsecs = 60000);
+
         // static datapacket send functions
         static void sendDataPacket(QIODevice* device, QByteArray *baDatatoSend);
         static void sendDataPacket(QIODevice* device, std::string strDatatoSend);
@@ -153,7 +140,7 @@ class IEleaph : public QObject
 
         // devices for keep alives
         QTimer timerKeepAlive;
-        QList<QIODevice*> lstDevicesKeepAlive;
+        QQueue<QIODevice*> lstDevicesKeepAlive;
 };
 
 #endif // SQMPACKETHANDLER_H

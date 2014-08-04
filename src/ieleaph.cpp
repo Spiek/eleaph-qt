@@ -19,13 +19,8 @@ IEleaph::IEleaph(quint32 maxDataLength, QObject *parent) : QObject(parent)
     // save construct vars
     this->intMaxDataLength = maxDataLength;
 
-    // init keep alive timer (if wanted!)
-    if(ELEAPH_KEEPALIVE_MODE != 0) {
-        this->connect(&this->timerKeepAlive, SIGNAL(timeout()), this, SLOT(keepDevicesAlive()));
-        this->timerKeepAlive.setTimerType(Qt::VeryCoarseTimer);
-        this->timerKeepAlive.setInterval(ELEAPH_KEEPALIVE_INTERVALL);
-        QMetaObject::invokeMethod(&this->timerKeepAlive, "start", Qt::QueuedConnection);
-    }
+    // init global data for keep alive system
+    this->connect(&this->timerKeepAlive, SIGNAL(timeout()), this, SLOT(keepDevicesAlive()));
 }
 
 /*
@@ -62,12 +57,9 @@ void IEleaph::addDevice(QIODevice* device, DeviceForgetOptions forgetoptions)
         this->connect(device, SIGNAL(destroyed()), this, SLOT(removeDevice()));
     }
 
-    // check ELEAPHRPC_KEEPALIVE_MODE if EleaphRpc have to send keep alive packages to device
-    if(   ELEAPH_KEEPALIVE_MODE == 1 ||
-         (ELEAPH_KEEPALIVE_MODE == 2 && !this->serverTcp.isListening()) ||
-         (ELEAPH_KEEPALIVE_MODE == 3 &&  this->serverTcp.isListening()))
-    {
-        this->lstDevicesKeepAlive.append(device);
+    // if auto KeepAlive system is active, add device to keep alive queue
+    if(this->timerKeepAlive.isActive()) {
+        this->lstDevicesKeepAlive.enqueue(device);
     }
 
     // call user implementation
@@ -195,9 +187,12 @@ void IEleaph::dataHandler()
 
 void IEleaph::keepDevicesAlive()
 {
-    // check if everything is okay, and send keep alive
-    foreach(QIODevice* device, this->lstDevicesKeepAlive) {
+    // send "empty" keep alive packet to every tracked keep alive device
+    int keepAliveDevices = this->lstDevicesKeepAlive.count();
+    for(int i = 0; i < keepAliveDevices; i++) {
+        QIODevice* device = this->lstDevicesKeepAlive.dequeue();
         this->sendDataPacket((QIODevice*)device, "");
+        this->lstDevicesKeepAlive.enqueue(device);
     }
 }
 
@@ -236,6 +231,16 @@ bool IEleaph::startTcpListening(quint16 port, QHostAddress address)
     return this->serverTcp.listen(address, port);
 }
 
+/*
+ * autoKeepAliveAddedDevices - auto keep alive all added devices by sending a ping packet over device every intervallMsecs
+ */
+void IEleaph::autoKeepAliveAddedDevices(quint32 intervallMsecs)
+{
+    // init keep alive timer (if wanted!)
+    this->timerKeepAlive.setTimerType(Qt::VeryCoarseTimer);
+    this->timerKeepAlive.setInterval(intervallMsecs);
+    this->timerKeepAlive.start();
+}
 
 
 
