@@ -108,7 +108,7 @@ void IEleaph::dataHandler()
     }
 
     // loop as long device contains data
-    while(PACKETLENGTHTYPE intAvailableDataLength = ioPacketDevice->isOpen() ? 0 : ioPacketDevice->bytesAvailable()) {
+    while(PACKETLENGTHTYPE intAvailableDataLength = !ioPacketDevice->isOpen() ? 0 : ioPacketDevice->bytesAvailable()) {
 
         /// <Aquire Data Packet>
         // get the exesting data packet, or if it doesn't exist a 0 Pointer
