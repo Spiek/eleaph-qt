@@ -15,6 +15,7 @@
 #include <QtCore/QMutex>
 #include <QtCore/QTimer>
 #include <QtCore/QQueue>
+#include <QtCore/QDateTime>
 
 // qt network libs
 #include <QtNetwork/QTcpServer>
@@ -38,6 +39,10 @@
 // NOTE: don't use key names which start with _q_, because this will be used by Qt itself
 //
 #define PROPERTYNAME_PACKET "SQMPacketHandler_packet"
+
+
+#define PROPERTYNAME_KEEPALIVE_SERVER "Eleaph_KeepAlive_Server"
+#define PROPERTYNAME_KEEPALIVE_CLIENT "Eleaph_KeepAlive_Client"
 
 
 struct EleaphPacket
@@ -102,8 +107,8 @@ class IEleaph : public QObject
         // start tcp listening
         bool startTcpListening(quint16 port, QHostAddress address = QHostAddress::Any);
 
-        // auto keep alive all added devices by sending a ping packet over device every intervallMsecs
-        void autoKeepAliveAddedDevices(quint32 intervallMsecs = 60000);
+        // start keep alive system with automatic connection killer if peer is not answering the ping with a "pong" packet
+        void startKeepAliveSystem(quint32 intervallCheckMsecs = 60000, quint32 intervallMaxMsecsUntilKill = 20000);
 
         // static datapacket send functions
         static void sendDataPacket(QIODevice* device, QByteArray *baDatatoSend);
@@ -138,8 +143,9 @@ class IEleaph : public QObject
         // members for tcpserver feature
         QTcpServer serverTcp;
 
-        // devices for keep alives
+        // keep alive system
         QTimer timerKeepAlive;
+        quint32 intKeepAliveMaxMsTimeoutUntilKill = 0;
         QQueue<QIODevice*> lstDevicesKeepAlive;
 };
 

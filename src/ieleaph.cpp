@@ -90,7 +90,7 @@ void IEleaph::removeDevice(QIODevice *device)
     }
 
     // remove device from keep alive system
-    this->lstDevicesKeepAlive.removeOne(device);
+    this->lstDevicesKeepAlive.removeOne(ioPacketDevice);
 
     // call user implementation
     this->deviceRemoved(ioPacketDevice);
@@ -151,8 +151,22 @@ void IEleaph::dataHandler()
         /// </Read Header> <-- Header read complete!
         /// <Read Content>
 
-        // cleanup and exit on empty packets
-        if(packet->intPacktLength == 0) goto cleanup_packet;
+        // handle Eleaph Keep Alive packets
+        // - packages with an packetlength of 0 are interpreted as Eleaph Keep Alive packets and they will not forwarded for process!
+        if(packet->intPacktLength == 0) {
+            // if keep alive system is full activated (then we are the server), so mark the keep alive packet from the client as received
+            if(this->intKeepAliveMaxMsTimeoutUntilKill > 0 && this->timerKeepAlive.isActive()) {
+                ioPacketDevice->setProperty(PROPERTYNAME_KEEPALIVE_CLIENT, true);
+            }
+
+            // if keep alive system is not enabled (then we are the client), so answer the ping packet from the server, with another ping packet
+            else if(this->intKeepAliveMaxMsTimeoutUntilKill == 0) {
+                this->sendDataPacket(ioPacketDevice, "");
+            }
+
+            // cleanup
+            goto cleanup_packet;
+        }
 
         // inform the outside world about packet download process
         this->packetDownloadProcess(ioPacketDevice, (intAvailableDataLength > packet->intPacktLength ? packet->intPacktLength : intAvailableDataLength ), packet->intPacktLength);
@@ -187,12 +201,56 @@ void IEleaph::dataHandler()
 
 void IEleaph::keepDevicesAlive()
 {
-    // send "empty" keep alive packet to every tracked keep alive device
+    // loop all available devices, send keep alive packets and handle killing of not responding peers!
+    QDateTime dateTimeCurrent = QDateTime::currentDateTime();
     int keepAliveDevices = this->lstDevicesKeepAlive.count();
     for(int i = 0; i < keepAliveDevices; i++) {
+        // dequeue from list
         QIODevice* device = this->lstDevicesKeepAlive.dequeue();
-        this->sendDataPacket((QIODevice*)device, "");
-        this->lstDevicesKeepAlive.enqueue(device);
+
+        // predefine values (for goto)
+        bool pongReceived;
+        QDateTime dateTimeMax;
+
+        // if intKeepAliveMaxMsTimeoutUntilKill is set 0, skip keep alive auto peer kill system
+        if(this->intKeepAliveMaxMsTimeoutUntilKill == 0) {
+            goto sendkeepalive;
+        }
+
+        // if no keep alive packet was send to client, so send it first
+        dateTimeMax = device->property(PROPERTYNAME_KEEPALIVE_SERVER).toDateTime();
+        if(!dateTimeMax.isValid()) {
+            device->setProperty(PROPERTYNAME_KEEPALIVE_SERVER, dateTimeCurrent);
+            goto sendkeepalive;
+        }
+
+        // if device has exceed the time for sending a keep alive respone back to the server, Kill the device
+        dateTimeMax = dateTimeMax.addMSecs(this->intKeepAliveMaxMsTimeoutUntilKill);
+        pongReceived = device->property(PROPERTYNAME_KEEPALIVE_CLIENT).toBool();
+        if(!pongReceived && dateTimeCurrent > dateTimeMax) {
+            device->close();
+            qDebug("[%s][IEleaph][Not Responsing Peer] Kill %p", qPrintable(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss")), device);
+            continue;
+        }
+
+        // if pongReceived was received, reset the client answer and save the current time as reference value for the next kill calculation
+        else if(pongReceived) {
+            device->setProperty(PROPERTYNAME_KEEPALIVE_SERVER, dateTimeCurrent);
+            device->setProperty(PROPERTYNAME_KEEPALIVE_CLIENT, false);
+        }
+
+        // otherwise we give the peer some more time to answer
+        else {
+            goto enqueue;
+        }
+
+        sendkeepalive:
+            // send "empty" keep alive packet to device to keep it alive
+            this->sendDataPacket(device, "");
+
+        enqueue:
+            // eneue keep alive device again to keep alive queue, for next turn
+            this->lstDevicesKeepAlive.enqueue(device);
     }
 }
 
@@ -234,11 +292,12 @@ bool IEleaph::startTcpListening(quint16 port, QHostAddress address)
 /*
  * autoKeepAliveAddedDevices - auto keep alive all added devices by sending a ping packet over device every intervallMsecs
  */
-void IEleaph::autoKeepAliveAddedDevices(quint32 intervallMsecs)
+void IEleaph::startKeepAliveSystem(quint32 intervallCheckMsecs, quint32 intervallMaxMsecsUntilKill)
 {
     // init keep alive timer (if wanted!)
-    this->timerKeepAlive.setTimerType(Qt::VeryCoarseTimer);
-    this->timerKeepAlive.setInterval(intervallMsecs);
+    this->timerKeepAlive.setTimerType(Qt::PreciseTimer);
+    this->timerKeepAlive.setInterval(intervallCheckMsecs);
+    this->intKeepAliveMaxMsTimeoutUntilKill = intervallMaxMsecsUntilKill;
     this->timerKeepAlive.start();
 }
 
