@@ -40,6 +40,18 @@
 #define PROPERTYNAME_PACKET "SQMPacketHandler_packet"
 
 
+//
+// TCP KEEP ALIVE
+//
+// Enables or Disables the TCP Keep Alive System for devices which are connect over TCP Listening Socket to IEleaph System
+//
+// Additional Information:
+// - http://tools.ietf.org/html/rfc1122#page-101
+// - http://qt-project.org/doc/qt-4.8/qabstractsocket.html#SocketOption-enum
+//
+#define ELEAPH_TCP_KEEPALIVE true
+
+
 struct EleaphPacket
 {
     public:

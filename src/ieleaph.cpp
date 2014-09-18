@@ -205,6 +205,9 @@ void IEleaph::newTcpHost()
     // acquire socket from tcpServer
     QTcpSocket *socket = this->serverTcp.nextPendingConnection();
 
+    // enables or disables keep alive system
+    socket->setSocketOption(QAbstractSocket::KeepAliveOption, ELEAPH_TCP_KEEPALIVE ? 1 : 0);
+
     // delete device on disconnect
     this->connect(socket, SIGNAL(disconnected()), this, SLOT(removeDevice()));
     this->connect(socket, SIGNAL(disconnected()), this, SLOT(deleteLater()));
