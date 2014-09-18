@@ -40,18 +40,6 @@
 #define PROPERTYNAME_PACKET "SQMPacketHandler_packet"
 
 
-//
-// TCP KEEP ALIVE
-//
-// Enables or Disables the TCP Keep Alive System for devices which are connect over TCP Listening Socket to IEleaph System
-//
-// Additional Information:
-// - http://tools.ietf.org/html/rfc1122#page-101
-// - http://qt-project.org/doc/qt-4.8/qabstractsocket.html#SocketOption-enum
-//
-#define ELEAPH_TCP_KEEPALIVE true
-
-
 struct EleaphPacket
 {
     public:
@@ -112,10 +100,7 @@ class IEleaph : public QObject
         };
 
         // start tcp listening
-        bool startTcpListening(quint16 port, QHostAddress address = QHostAddress::Any);
-
-        // auto keep alive all added devices by sending a ping packet over device every intervallMsecs
-        void autoKeepAliveAddedDevices(quint32 intervallMsecs = 60000);
+        bool startTcpListening(quint16 port, QHostAddress address = QHostAddress::Any, bool keepConnectedHostsAlive = true);
 
         // static datapacket send functions
         static void sendDataPacket(QIODevice* device, QByteArray *baDatatoSend);
@@ -141,7 +126,6 @@ class IEleaph : public QObject
     private slots:
         void newTcpHost();
         void dataHandler();
-        void keepDevicesAlive();
 
     private:
         // dynamic members
@@ -151,8 +135,7 @@ class IEleaph : public QObject
         QTcpServer serverTcp;
 
         // devices for keep alives
-        QTimer timerKeepAlive;
-        QQueue<QIODevice*> lstDevicesKeepAlive;
+        bool boolKeepConnectedHostsAlive;
 };
 
 #endif // SQMPACKETHANDLER_H

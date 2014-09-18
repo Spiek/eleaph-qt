@@ -18,9 +18,6 @@ IEleaph::IEleaph(quint32 maxDataLength, QObject *parent) : QObject(parent)
 {
     // save construct vars
     this->intMaxDataLength = maxDataLength;
-
-    // init global data for keep alive system
-    this->connect(&this->timerKeepAlive, SIGNAL(timeout()), this, SLOT(keepDevicesAlive()));
 }
 
 /*
@@ -57,11 +54,6 @@ void IEleaph::addDevice(QIODevice* device, DeviceForgetOptions forgetoptions)
         this->connect(device, SIGNAL(destroyed()), this, SLOT(removeDevice()));
     }
 
-    // if auto KeepAlive system is active, add device to keep alive queue
-    if(this->timerKeepAlive.isActive()) {
-        this->lstDevicesKeepAlive.enqueue(device);
-    }
-
     // call user implementation
     this->deviceAdded(device);
 }
@@ -88,9 +80,6 @@ void IEleaph::removeDevice(QIODevice *device)
     if(packet) {
         delete packet;
     }
-
-    // remove device from keep alive system
-    this->lstDevicesKeepAlive.removeOne(device);
 
     // call user implementation
     this->deviceRemoved(ioPacketDevice);
@@ -185,17 +174,6 @@ void IEleaph::dataHandler()
     }
 }
 
-void IEleaph::keepDevicesAlive()
-{
-    // send "empty" keep alive packet to every tracked keep alive device
-    int keepAliveDevices = this->lstDevicesKeepAlive.count();
-    for(int i = 0; i < keepAliveDevices; i++) {
-        QIODevice* device = this->lstDevicesKeepAlive.dequeue();
-        this->sendDataPacket((QIODevice*)device, "");
-        this->lstDevicesKeepAlive.enqueue(device);
-    }
-}
-
 /*
  * newTcpHost - add new connected tcp host to packet parser
  *              and make sure that the socket will deleted properly
@@ -206,7 +184,7 @@ void IEleaph::newTcpHost()
     QTcpSocket *socket = this->serverTcp.nextPendingConnection();
 
     // enables or disables keep alive system
-    socket->setSocketOption(QAbstractSocket::KeepAliveOption, ELEAPH_TCP_KEEPALIVE ? 1 : 0);
+    socket->setSocketOption(QAbstractSocket::KeepAliveOption, this->boolKeepConnectedHostsAlive ? 1 : 0);
 
     // delete device on disconnect
     this->connect(socket, SIGNAL(disconnected()), this, SLOT(removeDevice()));
@@ -227,23 +205,16 @@ void IEleaph::newTcpHost()
 /*
  * startTcpListening - start listenening on given adress and port
  */
-bool IEleaph::startTcpListening(quint16 port, QHostAddress address)
+bool IEleaph::startTcpListening(quint16 port, QHostAddress address, bool keepConnectedHostsAlive)
 {
+    // save keepConnectedHostsAlive
+    this->boolKeepConnectedHostsAlive = keepConnectedHostsAlive;
+
     // handle new connected tcp clients
     this->connect(&this->serverTcp, SIGNAL(newConnection()), this, SLOT(newTcpHost()));
     return this->serverTcp.listen(address, port);
 }
 
-/*
- * autoKeepAliveAddedDevices - auto keep alive all added devices by sending a ping packet over device every intervallMsecs
- */
-void IEleaph::autoKeepAliveAddedDevices(quint32 intervallMsecs)
-{
-    // init keep alive timer (if wanted!)
-    this->timerKeepAlive.setTimerType(Qt::VeryCoarseTimer);
-    this->timerKeepAlive.setInterval(intervallMsecs);
-    this->timerKeepAlive.start();
-}
 
 
 
