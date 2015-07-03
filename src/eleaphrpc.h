@@ -7,6 +7,9 @@
 #ifndef ELEAPHRPC_H
 #define ELEAPHRPC_H
 
+// ansi modules
+#include <typeinfo>
+
 // eleaph interface
 #include "ieleaph.h"
 
