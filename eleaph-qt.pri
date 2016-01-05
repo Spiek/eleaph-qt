@@ -12,7 +12,8 @@ SOURCES +=  $$PWD"/src/ieleaph.cpp" \
             $$PWD"/src/eleaphrpc.cpp" \
             $$PWD"/src/eleaphrpc_packetmetaevent.cpp" \
             $$PWD"/src/eleaphrpc_asyncpacketwaiter.cpp" \
-            $$PWD"/src/eleaphrpc_packethandler.cpp"
+            $$PWD"/src/eleaphrpc_packethandler.cpp" \
+    		$$PWD"/src/ssltcpserver.cpp"
 
 # Headers
 HEADERS +=  $$PWD"/src/ieleaph.h" \
@@ -20,7 +21,8 @@ HEADERS +=  $$PWD"/src/ieleaph.h" \
             $$PWD"/src/eleaphrpc_packetmetaevent.h" \
             $$PWD"/src/eleaphrpc_asyncpacketwaiter.h" \
             $$PWD"/src/eleaphrpc_packet.h" \
-            $$PWD"/src/eleaphrpc_packethandler.h"
+            $$PWD"/src/eleaphrpc_packethandler.h" \
+    		$$PWD"/src/ssltcpserver.h"
 
 # include path
 INCLUDEPATH += $$PWD"/include/"

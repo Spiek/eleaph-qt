@@ -180,8 +180,11 @@ void IEleaph::dataHandler()
  */
 void IEleaph::newTcpHost()
 {
+    // exit if we have no pending connection
+    if(!this->serverTcp || !this->serverTcp->hasPendingConnections()) return;
+
     // acquire socket from tcpServer
-    QTcpSocket *socket = this->serverTcp.nextPendingConnection();
+    QTcpSocket *socket = this->serverTcp->nextPendingConnection();
 
     // enables or disables keep alive system
     socket->setSocketOption(QAbstractSocket::KeepAliveOption, this->boolKeepConnectedHostsAlive ? 1 : 0);
@@ -205,14 +208,18 @@ void IEleaph::newTcpHost()
 /*
  * startTcpListening - start listenening on given adress and port
  */
-bool IEleaph::startTcpListening(quint16 port, QHostAddress address, bool keepConnectedHostsAlive)
+bool IEleaph::startTcpListening(quint16 port, QHostAddress address, bool keepConnectedHostsAlive, bool useSSL, QString pathCrt, QString pathKey, bool verifyPeer)
 {
     // save keepConnectedHostsAlive
     this->boolKeepConnectedHostsAlive = keepConnectedHostsAlive;
 
+    // (re)construct QTcpServer or SslTcpServer
+    if(this->serverTcp) this->serverTcp->deleteLater();
+    this->serverTcp = useSSL ? new SslTcpServer(pathCrt, pathKey, verifyPeer, this) : new QTcpServer(this);
+
     // handle new connected tcp clients
-    this->connect(&this->serverTcp, SIGNAL(newConnection()), this, SLOT(newTcpHost()));
-    return this->serverTcp.listen(address, port);
+    this->connect(this->serverTcp, SIGNAL(newConnection()), this, SLOT(newTcpHost()));
+    return this->serverTcp->listen(address, port);
 }
 
 

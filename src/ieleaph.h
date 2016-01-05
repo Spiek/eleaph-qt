@@ -23,6 +23,9 @@
 // include ansi libs
 #include <string>
 
+// own libs
+#include "ssltcpserver.h"
+
 //
 // PACKETLENGTHTYPE
 //
@@ -100,7 +103,7 @@ class IEleaph : public QObject
         };
 
         // start tcp listening
-        bool startTcpListening(quint16 port, QHostAddress address = QHostAddress::Any, bool keepConnectedHostsAlive = true);
+        bool startTcpListening(quint16 port, QHostAddress address = QHostAddress::Any, bool keepConnectedHostsAlive = true, bool useSSL = false, QString pathCrt = "", QString pathKey = "", bool verifyPeer = true);
 
         // static datapacket send functions
         static void sendDataPacket(QIODevice* device, QByteArray *baDatatoSend);
@@ -132,7 +135,7 @@ class IEleaph : public QObject
         quint32 intMaxDataLength;
 
         // members for tcpserver feature
-        QTcpServer serverTcp;
+        QTcpServer* serverTcp = 0;
 
         // devices for keep alives
         bool boolKeepConnectedHostsAlive;
