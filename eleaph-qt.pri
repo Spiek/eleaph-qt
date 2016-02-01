@@ -7,6 +7,11 @@
 # enable C++11
 CONFIG += c++11
 
+# Keep Alive System
+DEFINES	+= ELEAPH_KEEP_ALIVE_ACTIVE
+DEFINES	+= ELEAPH_KEEP_ALIVE_PINGINTERVAL=1000
+DEFINES	+= ELEAPH_KEEP_ALIVE_TIMEOUT=30000
+
 # Sources
 SOURCES +=  $$PWD"/src/ieleaph.cpp" \
             $$PWD"/src/eleaphrpc.cpp" \

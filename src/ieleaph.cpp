@@ -54,6 +54,23 @@ void IEleaph::addDevice(QIODevice* device, DeviceForgetOptions forgetoptions)
         this->connect(device, SIGNAL(destroyed()), this, SLOT(removeDevice()));
     }
 
+#ifdef ELEAPH_KEEP_ALIVE_ACTIVE
+    // activate keep alive system
+    device->setProperty("eleaph_keepalive", QDateTime::currentMSecsSinceEpoch());
+    QTimer* timerKeepAlive = device->property("eleaph_keepalivetimer").value<QTimer*>() ?: new QTimer(device);
+    device->setProperty("eleaph_keepalivetimer", QVariant::fromValue<QTimer*>(timerKeepAlive));
+    QObject::connect(timerKeepAlive, &QTimer::timeout, [device,this]() {
+        if(device->property("eleaph_keepalive").value<qint64>() + ELEAPH_KEEP_ALIVE_TIMEOUT < QDateTime::currentMSecsSinceEpoch()) {
+            return device->close();
+        }
+
+        // send empty ping packet
+        this->sendDataPacket(device, "");
+    });
+    timerKeepAlive->setInterval(ELEAPH_KEEP_ALIVE_PINGINTERVAL);
+    timerKeepAlive->start();
+#endif
+
     // call user implementation
     this->deviceAdded(device);
 }
@@ -80,6 +97,14 @@ void IEleaph::removeDevice(QIODevice *device)
     if(packet) {
         delete packet;
     }
+
+#ifdef ELEAPH_KEEP_ALIVE_ACTIVE
+    // deactivate keep alive system
+    QVariant timer = ioPacketDevice->property("eleaph_keepalivetimer");
+    if(timer.isValid()) timer.value<QTimer*>()->deleteLater();
+    ioPacketDevice->setProperty("eleaph_keepalive", QVariant::Invalid);
+    ioPacketDevice->setProperty("eleaph_keepalivetimer", QVariant::Invalid);
+#endif
 
     // call user implementation
     this->deviceRemoved(ioPacketDevice);
@@ -131,6 +156,13 @@ void IEleaph::dataHandler()
             PACKETLENGTHTYPE* ptrPacketLength = (PACKETLENGTHTYPE*)baPacketLength.constData();
             packet->intPacktLength = qFromBigEndian<PACKETLENGTHTYPE>(*ptrPacketLength);
             intAvailableDataLength -= sizeof(PACKETLENGTHTYPE);
+
+#ifdef ELEAPH_KEEP_ALIVE_ACTIVE
+			// if empty ping packet received (keep alive packet), update keepalive time
+            if(!baPacketLength.isEmpty() && packet->intPacktLength == 0) {
+                ioPacketDevice->setProperty("eleaph_keepalive", QDateTime::currentMSecsSinceEpoch());
+            }
+#endif
 
             // security check:
             // if content length is greater than the allowed intMaxDataLength, kill the device immediately
@@ -191,7 +223,7 @@ void IEleaph::newTcpHost()
 
     // delete device on disconnect
     this->connect(socket, SIGNAL(disconnected()), this, SLOT(removeDevice()));
-    this->connect(socket, SIGNAL(disconnected()), this, SLOT(deleteLater()));
+    this->connect(socket, SIGNAL(disconnected()), socket, SLOT(deleteLater()));
 
     // add the device to packet parser and remove the device if it's destroyed
     // Note: we care about socket deletion!
