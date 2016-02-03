@@ -43,17 +43,17 @@ void IEleaph::addDevice(QIODevice* device, DeviceForgetOptions forgetoptions, bo
     this->connect(device, SIGNAL(readyRead()), this, SLOT(dataHandler()));
 
     // register signals for Forget Flags
-    if(forgetoptions & ForgetDeviceOnClose) {
+    if((forgetoptions & ForgetDeviceOnClose) == ForgetDeviceOnClose) {
         this->connect(device, SIGNAL(aboutToClose()), this, SLOT(removeDevice()));
     }
-    if(forgetoptions & ForgetDeviceOnDisconnect) {
+    if((forgetoptions & ForgetDeviceOnDisconnect) == ForgetDeviceOnDisconnect) {
         QAbstractSocket* socket = qobject_cast<QAbstractSocket*>(device);
         if(socket) this->connect(socket, SIGNAL(disconnected()), this, SLOT(removeDevice()));
     }
-    if(forgetoptions & ForgetKillDeviceOnClose) {
+    if((forgetoptions & ForgetKillDeviceOnClose) == ForgetKillDeviceOnClose) {
         this->connect(device, SIGNAL(aboutToClose()), device, SLOT(deleteLater()));
     }
-    if(forgetoptions & ForgetKillDeviceOnDisconnect) {
+    if((forgetoptions & ForgetKillDeviceOnDisconnect) == ForgetKillDeviceOnDisconnect) {
         QAbstractSocket* socket = qobject_cast<QAbstractSocket*>(device);
         if(socket) this->connect(socket, SIGNAL(disconnected()), device, SLOT(deleteLater()));
     }
