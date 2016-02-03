@@ -39,19 +39,23 @@ IEleaph::~IEleaph()
  */
 void IEleaph::addDevice(QIODevice* device, DeviceForgetOptions forgetoptions)
 {
-    // connect to PacketHanderss
+    // handle ready read
     this->connect(device, SIGNAL(readyRead()), this, SLOT(dataHandler()));
 
-    // if user want that the Packethandler forget the device on close,
-    // remove the device after device has closed
-    if(forgetoptions == ForgetDeviceOnClose) {
+    // register signals for Forget Flags
+    if(forgetoptions & ForgetDeviceOnClose) {
         this->connect(device, SIGNAL(aboutToClose()), this, SLOT(removeDevice()));
     }
-
-    // if user want that the Packethandler don't forget the device on close,
-    // remove the device after device was destroyed
-    else if(forgetoptions == ForgetDeviceOnDestroy) {
-        this->connect(device, SIGNAL(destroyed()), this, SLOT(removeDevice()));
+    if(forgetoptions & ForgetDeviceOnDisconnect) {
+        QAbstractSocket* socket = qobject_cast<QAbstractSocket*>(device);
+        if(socket) this->connect(socket, SIGNAL(disconnected()), this, SLOT(removeDevice()));
+    }
+    if(forgetoptions & ForgetKillDeviceOnClose) {
+        this->connect(device, SIGNAL(aboutToClose()), device, SLOT(deleteLater()));
+    }
+    if(forgetoptions & ForgetKillDeviceOnDisconnect) {
+        QAbstractSocket* socket = qobject_cast<QAbstractSocket*>(device);
+        if(socket) this->connect(socket, SIGNAL(disconnected()), device, SLOT(deleteLater()));
     }
 
 #ifdef ELEAPH_KEEP_ALIVE_ACTIVE
@@ -221,13 +225,8 @@ void IEleaph::newTcpHost()
     // enables or disables keep alive system
     socket->setSocketOption(QAbstractSocket::KeepAliveOption, this->boolKeepConnectedHostsAlive ? 1 : 0);
 
-    // delete device on disconnect
-    this->connect(socket, SIGNAL(disconnected()), this, SLOT(removeDevice()));
-    this->connect(socket, SIGNAL(disconnected()), socket, SLOT(deleteLater()));
-
-    // add the device to packet parser and remove the device if it's destroyed
-    // Note: we care about socket deletion!
-    this->addDevice(socket, IEleaph::NeverForgetDevice);
+    // add the device to packet parser and kill the device if it's destroyed
+    this->addDevice(socket, IEleaph::ForgetKillDeviceOnDisconnect);
 }
 
 

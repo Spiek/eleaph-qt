@@ -97,9 +97,10 @@ class IEleaph : public QObject
     public:
         // device forget options for device addings
         enum DeviceForgetOptions {
-            ForgetDeviceOnClose = 0,
-            ForgetDeviceOnDestroy = 2,
-            NeverForgetDevice = 3
+            ForgetDeviceOnClose          = 1 << 0,
+            ForgetDeviceOnDisconnect     = 1 << 1,
+            ForgetKillDeviceOnClose      = ForgetDeviceOnClose      + (1 << 2),
+            ForgetKillDeviceOnDisconnect = ForgetDeviceOnDisconnect + (1 << 3)
         };
 
         // start tcp listening
@@ -110,7 +111,7 @@ class IEleaph : public QObject
         static void sendDataPacket(QIODevice* device, std::string strDatatoSend);
 
     public slots:
-        void addDevice(QIODevice* device, IEleaph::DeviceForgetOptions forgetoptions = IEleaph::ForgetDeviceOnDestroy);
+        void addDevice(QIODevice* device, IEleaph::DeviceForgetOptions forgetoptions = IEleaph::ForgetDeviceOnClose);
         void removeDevice(QIODevice *device = 0);
 
     protected:
