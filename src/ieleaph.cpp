@@ -37,7 +37,7 @@ IEleaph::~IEleaph()
 /*
  * addDevice - add device for packet parsing
  */
-void IEleaph::addDevice(QIODevice* device, DeviceForgetOptions forgetoptions)
+void IEleaph::addDevice(QIODevice* device, DeviceForgetOptions forgetoptions, bool enableKeepAliveSystem, uint keepAlivePingTime, uint keepAliveCloseTimeoutTime)
 {
     // handle ready read
     this->connect(device, SIGNAL(readyRead()), this, SLOT(dataHandler()));
@@ -58,22 +58,22 @@ void IEleaph::addDevice(QIODevice* device, DeviceForgetOptions forgetoptions)
         if(socket) this->connect(socket, SIGNAL(disconnected()), device, SLOT(deleteLater()));
     }
 
-#ifdef ELEAPH_KEEP_ALIVE_ACTIVE
-    // activate keep alive system
-    device->setProperty("eleaph_keepalive", QDateTime::currentMSecsSinceEpoch());
-    QTimer* timerKeepAlive = device->property("eleaph_keepalivetimer").value<QTimer*>() ?: new QTimer(device);
-    device->setProperty("eleaph_keepalivetimer", QVariant::fromValue<QTimer*>(timerKeepAlive));
-    QObject::connect(timerKeepAlive, &QTimer::timeout, [device,this]() {
-        if(device->property("eleaph_keepalive").value<qint64>() + ELEAPH_KEEP_ALIVE_TIMEOUT < QDateTime::currentMSecsSinceEpoch()) {
-            return device->close();
-        }
+    // if wanted, activate keep alive system
+    if(enableKeepAliveSystem) {
+        device->setProperty(PROPERTYNAME_KEEPALIVE, QDateTime::currentMSecsSinceEpoch());
+        QTimer* timerKeepAlive = device->property(PROPERTYNAME_KEEPALIVETIMER).value<QTimer*>() ?: new QTimer(device);
+        device->setProperty(PROPERTYNAME_KEEPALIVETIMER, QVariant::fromValue<QTimer*>(timerKeepAlive));
+        QObject::connect(timerKeepAlive, &QTimer::timeout, [keepAliveCloseTimeoutTime,keepAlivePingTime,device,this]() {
+            if(device->property(PROPERTYNAME_KEEPALIVE).value<qint64>() + keepAliveCloseTimeoutTime < QDateTime::currentMSecsSinceEpoch()) {
+                return device->close();
+            }
 
-        // send empty ping packet
-        this->sendDataPacket(device, "");
-    });
-    timerKeepAlive->setInterval(ELEAPH_KEEP_ALIVE_PINGINTERVAL);
-    timerKeepAlive->start();
-#endif
+            // send empty ping packet
+            this->sendDataPacket(device, "");
+        });
+        timerKeepAlive->setInterval(keepAlivePingTime);
+        timerKeepAlive->start();
+    }
 
     // call user implementation
     this->deviceAdded(device);
@@ -102,13 +102,13 @@ void IEleaph::removeDevice(QIODevice *device)
         delete packet;
     }
 
-#ifdef ELEAPH_KEEP_ALIVE_ACTIVE
-    // deactivate keep alive system
-    QVariant timer = ioPacketDevice->property("eleaph_keepalivetimer");
-    if(timer.isValid()) timer.value<QTimer*>()->deleteLater();
-    ioPacketDevice->setProperty("eleaph_keepalive", QVariant::Invalid);
-    ioPacketDevice->setProperty("eleaph_keepalivetimer", QVariant::Invalid);
-#endif
+    // deactivate keep alive system (if activated
+    QVariant timer = ioPacketDevice->property(PROPERTYNAME_KEEPALIVETIMER);
+    if(timer.isValid()) {
+        timer.value<QTimer*>()->deleteLater();
+        ioPacketDevice->setProperty(PROPERTYNAME_KEEPALIVE, QVariant::Invalid);
+        ioPacketDevice->setProperty(PROPERTYNAME_KEEPALIVETIMER, QVariant::Invalid);
+    }
 
     // call user implementation
     this->deviceRemoved(ioPacketDevice);
@@ -161,12 +161,10 @@ void IEleaph::dataHandler()
             packet->intPacktLength = qFromBigEndian<PACKETLENGTHTYPE>(*ptrPacketLength);
             intAvailableDataLength -= sizeof(PACKETLENGTHTYPE);
 
-#ifdef ELEAPH_KEEP_ALIVE_ACTIVE
 			// if empty ping packet received (keep alive packet), update keepalive time
-            if(!baPacketLength.isEmpty() && packet->intPacktLength == 0) {
-                ioPacketDevice->setProperty("eleaph_keepalive", QDateTime::currentMSecsSinceEpoch());
+            if(!baPacketLength.isEmpty() && packet->intPacktLength == 0 && ioPacketDevice->property(PROPERTYNAME_KEEPALIVETIMER).isValid()) {
+                ioPacketDevice->setProperty(PROPERTYNAME_KEEPALIVE, QDateTime::currentMSecsSinceEpoch());
             }
-#endif
 
             // security check:
             // if content length is greater than the allowed intMaxDataLength, kill the device immediately

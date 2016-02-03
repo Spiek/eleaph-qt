@@ -41,6 +41,8 @@
 // NOTE: don't use key names which start with _q_, because this will be used by Qt itself
 //
 #define PROPERTYNAME_PACKET "SQMPacketHandler_packet"
+#define PROPERTYNAME_KEEPALIVE "eleaph_keepalive"
+#define PROPERTYNAME_KEEPALIVETIMER "eleaph_keepalivetimer"
 
 
 struct EleaphPacket
@@ -111,7 +113,7 @@ class IEleaph : public QObject
         static void sendDataPacket(QIODevice* device, std::string strDatatoSend);
 
     public slots:
-        void addDevice(QIODevice* device, IEleaph::DeviceForgetOptions forgetoptions = IEleaph::ForgetDeviceOnClose);
+        void addDevice(QIODevice* device, IEleaph::DeviceForgetOptions forgetoptions = IEleaph::ForgetDeviceOnClose, bool enableKeepAliveSystem = true, uint keepAlivePingTime = 1000, uint keepAliveCloseTimeoutTime = 30000);
         void removeDevice(QIODevice *device = 0);
 
     protected:
