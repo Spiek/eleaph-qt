@@ -15,6 +15,7 @@
 #include <QtCore/QMutex>
 #include <QtCore/QTimer>
 #include <QtCore/QQueue>
+#include <QtCore/QSet>
 
 // qt network libs
 #include <QtNetwork/QTcpServer>
@@ -139,6 +140,7 @@ class IEleaph : public QObject
 
         // members for tcpserver feature
         QTcpServer* serverTcp = 0;
+        QSet<QIODevice*> lstDevices;
 
         // devices for keep alives
         bool boolKeepConnectedHostsAlive;

@@ -39,6 +39,9 @@ IEleaph::~IEleaph()
  */
 void IEleaph::addDevice(QIODevice* device, DeviceForgetOptions forgetoptions, bool enableKeepAliveSystem, uint keepAlivePingTime, uint keepAliveCloseTimeoutTime)
 {
+    // if we have not a valid device, exit
+    if(!device) return;
+
     // handle ready read
     this->connect(device, SIGNAL(readyRead()), this, SLOT(dataHandler()));
 
@@ -75,6 +78,9 @@ void IEleaph::addDevice(QIODevice* device, DeviceForgetOptions forgetoptions, bo
         timerKeepAlive->start();
     }
 
+    // register device
+    this->lstDevices.insert(device);
+
     // call user implementation
     this->deviceAdded(device);
 }
@@ -109,6 +115,9 @@ void IEleaph::removeDevice(QIODevice *device)
         ioPacketDevice->setProperty(PROPERTYNAME_KEEPALIVE, QVariant::Invalid);
         ioPacketDevice->setProperty(PROPERTYNAME_KEEPALIVETIMER, QVariant::Invalid);
     }
+
+    // register device
+    this->lstDevices.remove(device);
 
     // call user implementation
     this->deviceRemoved(ioPacketDevice);
@@ -272,6 +281,9 @@ void IEleaph::sendDataPacket(QIODevice *device, std::string strDatatoSend)
  */
 void IEleaph::sendDataPacket(QIODevice *device, QByteArray *baDatatoSend)
 {
+    // if device or data is null or device is not registered, exit
+    if(!device || !baDatatoSend || !this->lstDevices.contains(device)) return;
+
     // create content length with the help of Qt's Endian method qToBigEndian
     PACKETLENGTHTYPE intDataLength = baDatatoSend->length();
     intDataLength = qToBigEndian<PACKETLENGTHTYPE>(intDataLength);
