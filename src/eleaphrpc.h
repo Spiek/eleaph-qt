@@ -64,6 +64,9 @@ class EleaphRpc : public IEleaph
         void unregisterRpcMethodWorker(QObject* receiver, const char *member = 0);
 
         // sending
+        void sendRPCDataPacket(QString strProcedureName, std::string);
+        void sendRPCDataPacket(QString strProcedureName, char* data, int length);
+        void sendRPCDataPacket(QString strProcedureName, QByteArray data = QByteArray());
         void sendRPCDataPacket(QIODevice *device, QString strProcedureName, std::string);
         void sendRPCDataPacket(QIODevice *device, QString strProcedureName, char* data, int length);
         void sendRPCDataPacket(QIODevice *device, QString strProcedureName, QByteArray data = QByteArray());
@@ -80,6 +83,7 @@ class EleaphRpc : public IEleaph
     private:
         // logic Unifier methods
         void registerRpcMethodLogicUnifier(QString strMethod, QObject* receiver, const char *member, bool isWorker, bool singleShot = false, EleaphRpcPacketMetaEvent event0 = EleaphRpcPacketMetaEvent(), EleaphRpcPacketMetaEvent event1 = EleaphRpcPacketMetaEvent(), EleaphRpcPacketMetaEvent event2 = EleaphRpcPacketMetaEvent(), EleaphRpcPacketMetaEvent event3 = EleaphRpcPacketMetaEvent(), EleaphRpcPacketMetaEvent event4 = EleaphRpcPacketMetaEvent(), EleaphRpcPacketMetaEvent event5 = EleaphRpcPacketMetaEvent(), EleaphRpcPacketMetaEvent event6 = EleaphRpcPacketMetaEvent(), EleaphRpcPacketMetaEvent event7 = EleaphRpcPacketMetaEvent());
+        void constructRpcPacket(QString strProcedureName, QByteArray& data);
 
         // base rpc system
         QMultiMap<QString, QSharedPointer<EleaphRpcDelegate> > mapRPCFunctions;

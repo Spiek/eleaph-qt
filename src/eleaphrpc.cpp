@@ -204,26 +204,44 @@ void EleaphRpc::unregisterRpcMethodWorker(QObject *receiver, const char *member)
     }
 }
 
+
 /*
- * sendRPCDataPacket - OVERLOADED: send an RPC DataPacket to given Device
+ *  sendRPCDataPacket - build rpc eleaph packet and send to device
  */
+void EleaphRpc::sendRPCDataPacket(QString strProcedureName, char *data, int length)
+{
+    return this->sendRPCDataPacket(strProcedureName, QByteArray(data, length));
+}
+
+void EleaphRpc::sendRPCDataPacket(QString strProcedureName, std::string data)
+{
+    return this->sendRPCDataPacket(strProcedureName, QByteArray(data.c_str(), data.length()));
+}
+
+void EleaphRpc::sendRPCDataPacket(QString strProcedureName, QByteArray data)
+{
+    this->constructRpcPacket(strProcedureName, data);
+    return this->sendDataPacket(&data);
+}
+
+
 void EleaphRpc::sendRPCDataPacket(QIODevice *device, QString strProcedureName, char *data, int length)
 {
     return this->sendRPCDataPacket(device, strProcedureName, QByteArray(data, length));
 }
 
-/*
- * sendRPCDataPacket - OVERLOADED: send an RPC DataPacket to given Device
- */
 void EleaphRpc::sendRPCDataPacket(QIODevice *device, QString strProcedureName, std::string data)
 {
     return this->sendRPCDataPacket(device, strProcedureName, QByteArray(data.c_str(), data.length()));
 }
 
-/*
- * sendRPCDataPacket - send an RPC DataPacket to given Device
- */
 void EleaphRpc::sendRPCDataPacket(QIODevice *device, QString strProcedureName, QByteArray data)
+{
+    this->constructRpcPacket(strProcedureName, data);
+    return this->sendDataPacket(device, &data);
+}
+
+void EleaphRpc::constructRpcPacket(QString strProcedureName, QByteArray& data)
 {
     // create content length with the help of Qt's Endian method qToBigEndian
     qint16 intDataLength = strProcedureName.length();
@@ -232,9 +250,6 @@ void EleaphRpc::sendRPCDataPacket(QIODevice *device, QString strProcedureName, Q
     // prepend the content-length and method name to the data
     data.prepend(strProcedureName.toLatin1());
     data.prepend((char*)&intDataLength, sizeof(qint16));
-
-    // send the RPC-Packet
-    this->sendDataPacket(device, &data);
 }
 
 EleaphRpcPacket EleaphRpc::waitAsyncForPacket(QString strMethod)

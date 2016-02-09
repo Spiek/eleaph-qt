@@ -266,6 +266,24 @@ bool IEleaph::startTcpListening(quint16 port, QHostAddress address, bool keepCon
 //
 // Static Helper section
 //
+/*
+ * sendDataPacket - send given data to last registered IODevice
+ */
+void IEleaph::sendDataPacket(std::string strDatatoSend)
+{
+    if(this->lstDevices.isEmpty()) return;
+    QByteArray baData(strDatatoSend.c_str(), strDatatoSend.length());
+    return this->sendDataPacket(*--this->lstDevices.end(), &baData);
+}
+
+/*
+ * sendDataPacket - send given data to last registered IODevice
+ */
+void IEleaph::sendDataPacket(QByteArray *baDatatoSend)
+{
+    if(this->lstDevices.isEmpty()) return;
+    return this->sendDataPacket(*--this->lstDevices.end(), baDatatoSend);
+}
 
 /*
  * sendDataPacket - send given data to given IODevice including packet length
@@ -273,7 +291,7 @@ bool IEleaph::startTcpListening(quint16 port, QHostAddress address, bool keepCon
 void IEleaph::sendDataPacket(QIODevice *device, std::string strDatatoSend)
 {
     QByteArray baData(strDatatoSend.c_str(), strDatatoSend.length());
-    return IEleaph::sendDataPacket(device, &baData);
+    return this->sendDataPacket(device, &baData);
 }
 
 /*
