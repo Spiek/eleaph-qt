@@ -110,8 +110,8 @@ class IEleaph : public QObject
         bool startTcpListening(quint16 port, QHostAddress address = QHostAddress::Any, bool keepConnectedHostsAlive = true, bool useSSL = false, QString pathCrt = "", QString pathKey = "", bool verifyPeer = true);
 
         // static datapacket send functions
-        static void sendDataPacket(QIODevice* device, QByteArray *baDatatoSend);
-        static void sendDataPacket(QIODevice* device, std::string strDatatoSend);
+        void sendDataPacket(QIODevice* device, QByteArray *baDatatoSend);
+        void sendDataPacket(QIODevice* device, std::string strDatatoSend);
 
     public slots:
         void addDevice(QIODevice* device, IEleaph::DeviceForgetOptions forgetoptions = IEleaph::ForgetDeviceOnClose, bool enableKeepAliveSystem = true, uint keepAlivePingTime = 1000, uint keepAliveCloseTimeoutTime = 30000);
