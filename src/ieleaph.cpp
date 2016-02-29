@@ -117,7 +117,7 @@ void IEleaph::removeDevice(QIODevice *device)
     }
 
     // register device
-    this->lstDevices.remove(device);
+    this->lstDevices.remove(ioPacketDevice);
 
     // call user implementation
     this->deviceRemoved(ioPacketDevice);
@@ -309,6 +309,11 @@ void IEleaph::sendDataPacket(QIODevice *device, QByteArray *baDatatoSend)
     // send the content-length and data
     device->write((char*)&intDataLength, sizeof(PACKETLENGTHTYPE));
     device->write(*baDatatoSend);
+}
+
+bool IEleaph::isDeviceRegistered(QIODevice *device)
+{
+    return this->lstDevices.contains(device);
 }
 
 //
