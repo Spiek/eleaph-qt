@@ -170,11 +170,6 @@ void IEleaph::dataHandler()
             packet->intPacktLength = qFromBigEndian<PACKETLENGTHTYPE>(*ptrPacketLength);
             intAvailableDataLength -= sizeof(PACKETLENGTHTYPE);
 
-			// if empty ping packet received (keep alive packet), update keepalive time
-            if(!baPacketLength.isEmpty() && packet->intPacktLength == 0 && ioPacketDevice->property(PROPERTYNAME_KEEPALIVETIMER).isValid()) {
-                ioPacketDevice->setProperty(PROPERTYNAME_KEEPALIVE, QDateTime::currentMSecsSinceEpoch());
-            }
-
             // security check:
             // if content length is greater than the allowed intMaxDataLength, kill the device immediately
             if(packet->intPacktLength > this->intMaxDataLength) goto kill;
@@ -182,6 +177,11 @@ void IEleaph::dataHandler()
 
         /// </Read Header> <-- Header read complete!
         /// <Read Content>
+
+        // update keep alive timer if we receive data
+        if(ioPacketDevice->property(PROPERTYNAME_KEEPALIVETIMER).isValid()) {
+           ioPacketDevice->setProperty(PROPERTYNAME_KEEPALIVE, QDateTime::currentMSecsSinceEpoch());
+        }
 
         // cleanup and exit on empty packets
         if(packet->intPacktLength == 0) goto cleanup_packet;
