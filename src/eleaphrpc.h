@@ -39,6 +39,7 @@ class EleaphRpc : public IEleaph
     signals:
         void sigDeviceAdded(QIODevice* device);
         void sigDeviceRemoved(QIODevice* device);
+        void sigDownloadProgress(QIODevice* device, qint64 downloadedBytes, qint64 totalBytes);
 
     public slots:
         void unregisterRpcObject();
@@ -71,6 +72,10 @@ class EleaphRpc : public IEleaph
         void sendRPCDataPacket(QIODevice *device, QString strProcedureName, char* data, int length);
         void sendRPCDataPacket(QIODevice *device, QString strProcedureName, QByteArray data = QByteArray());
 
+        // download progress system
+        inline void setEnableDownloadProgress(bool enabled) { this->downloadProgress = enabled; }
+        inline bool downloadProgressEnabled() { return this->downloadProgress; }
+
         // asyncron wait
         EleaphRpcPacket waitAsyncForPacket(QString strMethod);
 
@@ -79,6 +84,7 @@ class EleaphRpc : public IEleaph
         virtual void newDataPacketReceived(EleaphPacket *dataPacket);
         virtual void deviceAdded(QIODevice* device);
         virtual void deviceRemoved(QIODevice* device);
+        virtual void packetDownloadProcess(QIODevice* device, qint64 downloadedBytes, qint64 totalBytes);
 
     private:
         // logic Unifier methods
@@ -94,6 +100,9 @@ class EleaphRpc : public IEleaph
 
         // helper methods
         QByteArray extractMethodName(const char* method);
+
+        // download progress
+        bool downloadProgress = false;
 };
 
 

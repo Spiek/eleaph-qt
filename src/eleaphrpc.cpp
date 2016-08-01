@@ -357,6 +357,14 @@ void EleaphRpc::deviceRemoved(QIODevice *device)
     emit this->sigDeviceRemoved(device);
 }
 
+void EleaphRpc::packetDownloadProcess(QIODevice *device, qint64 downloadedBytes, qint64 totalBytes)
+{
+	// if user don't want to receive packet download progress signals, exit
+    if(!this->downloadProgress) return;
+
+	// otherwise show download progress to external world
+    emit this->sigDownloadProgress(device, downloadedBytes, totalBytes);
+}
 
 //
 // private slots
