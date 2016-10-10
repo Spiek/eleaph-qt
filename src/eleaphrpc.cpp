@@ -252,14 +252,16 @@ void EleaphRpc::constructRpcPacket(QString strProcedureName, QByteArray& data)
     data.prepend((char*)&intDataLength, sizeof(qint16));
 }
 
-EleaphRpcPacket EleaphRpc::waitAsyncForPacket(QString strMethod)
+EleaphRpcPacket EleaphRpc::waitAsyncForPacket(QString strMethod, int timeoutMs, QEventLoop* eventLoop)
 {
     EleaphRpcAsyncPacketWaiter packetWaiter(this, strMethod);
 
     // wait for packet with the help of the event loop
-    QEventLoop eventLoop;
-    eventLoop.connect(&packetWaiter, SIGNAL(packetReady()), &eventLoop, SLOT(quit()));
-    eventLoop.exec();
+    QEventLoop* loop = eventLoop ?: new QEventLoop;
+    loop->connect(&packetWaiter, SIGNAL(packetReady()), loop, SLOT(quit()));
+    if(timeoutMs > 0) QTimer::singleShot(timeoutMs, loop, &QEventLoop::quit);
+    loop->exec();
+    if(!eventLoop) delete loop;
 
     // return packet
     return packetWaiter.receivedDataPacket;

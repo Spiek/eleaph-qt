@@ -20,6 +20,7 @@
 #include <QtCore/QSharedPointer>
 #include <QtCore/QQueue>
 #include <QtCore/QThread>
+#include <QtCore/QTimer>
 
 // forward declaration of file classes (some modules need classes from this module)
 class EleaphRpc;
@@ -77,7 +78,7 @@ class EleaphRpc : public IEleaph
         inline bool downloadProgressEnabled() { return this->downloadProgress; }
 
         // asyncron wait
-        EleaphRpcPacket waitAsyncForPacket(QString strMethod);
+        EleaphRpcPacket waitAsyncForPacket(QString strMethod, int timeoutMs = -1, QEventLoop *eventLoop = 0);
 
     protected:
         // interface implementation
