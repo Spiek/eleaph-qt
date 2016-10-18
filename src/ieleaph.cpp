@@ -63,6 +63,7 @@ void IEleaph::addDevice(QIODevice* device, DeviceForgetOptions forgetoptions, bo
 
     // if wanted, activate keep alive system
     if(enableKeepAliveSystem) {
+        device->setProperty(PROPERTYNAME_KEEPALIVEINTERVAL, keepAlivePingTime);
         device->setProperty(PROPERTYNAME_KEEPALIVE, QDateTime::currentMSecsSinceEpoch());
         QTimer* timerKeepAlive = device->property(PROPERTYNAME_KEEPALIVETIMER).value<QTimer*>() ?: new QTimer(device);
         device->setProperty(PROPERTYNAME_KEEPALIVETIMER, QVariant::fromValue<QTimer*>(timerKeepAlive));
@@ -181,6 +182,12 @@ void IEleaph::dataHandler()
         // update keep alive timer if we receive data
         if(ioPacketDevice->property(PROPERTYNAME_KEEPALIVETIMER).isValid()) {
            ioPacketDevice->setProperty(PROPERTYNAME_KEEPALIVE, QDateTime::currentMSecsSinceEpoch());
+        }
+
+        // if we have pending data in write cache, write it
+        if(ioPacketDevice->property(PROPERTYNAME_WRITEDATACACHE).isValid()) {
+             ioPacketDevice->write(ioPacketDevice->property(PROPERTYNAME_WRITEDATACACHE).value<QByteArray>());
+             ioPacketDevice->setProperty(PROPERTYNAME_WRITEDATACACHE, QVariant());
         }
 
         // cleanup and exit on empty packets
@@ -305,6 +312,17 @@ void IEleaph::sendDataPacket(QIODevice *device, QByteArray *baDatatoSend)
     // create content length with the help of Qt's Endian method qToBigEndian
     PACKETLENGTHTYPE intDataLength = baDatatoSend->length();
     intDataLength = qToBigEndian<PACKETLENGTHTYPE>(intDataLength);
+
+    // if we don't receive a response from server since keepAlivePingTime-seconds + 1ms, hold back writing data (until we get the next data from server!)
+    if(device->property(PROPERTYNAME_KEEPALIVE).isValid() &&
+       device->property(PROPERTYNAME_KEEPALIVE).value<qint64>() + device->property(PROPERTYNAME_KEEPALIVEINTERVAL).value<uint>() + 1 < QDateTime::currentMSecsSinceEpoch())
+    {
+        QByteArray data = device->property(PROPERTYNAME_WRITEDATACACHE).toByteArray();
+        data.append((char*)&intDataLength, sizeof(PACKETLENGTHTYPE));
+        data.append(*baDatatoSend);
+        device->setProperty(PROPERTYNAME_WRITEDATACACHE, data);
+        return;
+    }
 
     // send the content-length and data
     device->write((char*)&intDataLength, sizeof(PACKETLENGTHTYPE));

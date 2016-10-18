@@ -44,6 +44,8 @@
 #define PROPERTYNAME_PACKET "SQMPacketHandler_packet"
 #define PROPERTYNAME_KEEPALIVE "eleaph_keepalive"
 #define PROPERTYNAME_KEEPALIVETIMER "eleaph_keepalivetimer"
+#define PROPERTYNAME_KEEPALIVEINTERVAL "eleaph_keepaliveinterval"
+#define PROPERTYNAME_WRITEDATACACHE "eleaph_writedatacache"
 
 
 struct EleaphPacket
