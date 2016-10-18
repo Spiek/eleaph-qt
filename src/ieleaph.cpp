@@ -14,9 +14,12 @@
  * IEleaph - construct the PacketHandler
  *           NOTE: protected constructor for SINGELTON construction
  */
-IEleaph::IEleaph(quint32 maxDataLength, QObject *parent) : QObject(parent)
+IEleaph::IEleaph(KeepAliveMode keepAliveMode, uint keepAlivePingTime, uint keepAliveCloseTimeoutTime, quint32 maxDataLength, QObject *parent) : QObject(parent)
 {
     // save construct vars
+    this->keepAliveMode = keepAliveMode;
+    this->keepAlivePingTime = keepAlivePingTime;
+    this->keepAliveCloseTimeoutTime = keepAliveCloseTimeoutTime;
     this->intMaxDataLength = maxDataLength;
 }
 
@@ -37,7 +40,7 @@ IEleaph::~IEleaph()
 /*
  * addDevice - add device for packet parsing
  */
-void IEleaph::addDevice(QIODevice* device, DeviceForgetOptions forgetoptions, bool enableKeepAliveSystem, uint keepAlivePingTime, uint keepAliveCloseTimeoutTime)
+void IEleaph::addDevice(QIODevice* device, DeviceForgetOptions forgetoptions)
 {
     // if we have not a valid device, exit
     if(!device) return;
@@ -62,19 +65,17 @@ void IEleaph::addDevice(QIODevice* device, DeviceForgetOptions forgetoptions, bo
     }
 
     // if wanted, activate keep alive system
-    if(enableKeepAliveSystem) {
+    if(this->keepAliveMode != KeepAliveMode::Disabled) {
         device->setProperty(PROPERTYNAME_KEEPALIVE, QDateTime::currentMSecsSinceEpoch());
         QTimer* timerKeepAlive = device->property(PROPERTYNAME_KEEPALIVETIMER).value<QTimer*>() ?: new QTimer(device);
         device->setProperty(PROPERTYNAME_KEEPALIVETIMER, QVariant::fromValue<QTimer*>(timerKeepAlive));
-        QObject::connect(timerKeepAlive, &QTimer::timeout, [keepAliveCloseTimeoutTime,keepAlivePingTime,device,this]() {
-            if(device->property(PROPERTYNAME_KEEPALIVE).value<qint64>() + keepAliveCloseTimeoutTime < QDateTime::currentMSecsSinceEpoch()) {
+        QObject::connect(timerKeepAlive, &QTimer::timeout, [device,this]() {
+            if(device->property(PROPERTYNAME_KEEPALIVE).value<qint64>() + this->keepAliveCloseTimeoutTime < QDateTime::currentMSecsSinceEpoch()) {
                 return device->close();
             }
-
-            // send empty ping packet
-            this->sendDataPacket(device, "");
+            if(this->keepAliveMode == KeepAliveMode::EleaphServer) this->sendDataPacket(device, "");
         });
-        timerKeepAlive->setInterval(keepAlivePingTime);
+        timerKeepAlive->setInterval(this->keepAlivePingTime);
         timerKeepAlive->start();
     }
 
@@ -181,6 +182,9 @@ void IEleaph::dataHandler()
         // update keep alive timer if we receive data
         if(ioPacketDevice->property(PROPERTYNAME_KEEPALIVETIMER).isValid()) {
            ioPacketDevice->setProperty(PROPERTYNAME_KEEPALIVE, QDateTime::currentMSecsSinceEpoch());
+
+           // if we have an empty (ping) packet, send pong back
+           if(this->keepAliveMode == KeepAliveMode::EleaphClient && packet->intPacktLength == 0) this->sendDataPacket(ioPacketDevice, "");
         }
 
         // cleanup and exit on empty packets
@@ -229,9 +233,6 @@ void IEleaph::newTcpHost()
     // acquire socket from tcpServer
     QTcpSocket *socket = this->serverTcp->nextPendingConnection();
 
-    // enables or disables keep alive system
-    socket->setSocketOption(QAbstractSocket::KeepAliveOption, this->boolKeepConnectedHostsAlive ? 1 : 0);
-
     // add the device to packet parser and kill the device if it's destroyed
     this->addDevice(socket, IEleaph::ForgetKillDeviceOnDisconnect);
 }
@@ -246,11 +247,8 @@ void IEleaph::newTcpHost()
 /*
  * startTcpListening - start listenening on given adress and port
  */
-bool IEleaph::startTcpListening(quint16 port, QHostAddress address, bool keepConnectedHostsAlive, bool useSSL, QString pathCrt, QString pathKey, bool verifyPeer)
+bool IEleaph::startTcpListening(quint16 port, QHostAddress address, bool useSSL, QString pathCrt, QString pathKey, bool verifyPeer)
 {
-    // save keepConnectedHostsAlive
-    this->boolKeepConnectedHostsAlive = keepConnectedHostsAlive;
-
     // (re)construct QTcpServer or SslTcpServer
     if(this->serverTcp) this->serverTcp->deleteLater();
     this->serverTcp = useSSL ? new SslTcpServer(pathCrt, pathKey, verifyPeer, this) : new QTcpServer(this);

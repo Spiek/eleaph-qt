@@ -105,9 +105,14 @@ class IEleaph : public QObject
             ForgetKillDeviceOnClose      = ForgetDeviceOnClose      + (1 << 2),
             ForgetKillDeviceOnDisconnect = ForgetDeviceOnDisconnect + (1 << 3)
         };
+        enum class KeepAliveMode {
+            Disabled = 0,
+            EleaphServer = 1,
+            EleaphClient = 2
+        };
 
         // start tcp listening
-        bool startTcpListening(quint16 port, QHostAddress address = QHostAddress::Any, bool keepConnectedHostsAlive = true, bool useSSL = false, QString pathCrt = "", QString pathKey = "", bool verifyPeer = true);
+        bool startTcpListening(quint16 port, QHostAddress address = QHostAddress::Any, bool useSSL = false, QString pathCrt = "", QString pathKey = "", bool verifyPeer = true);
 
         // datapacket send functions
         void sendDataPacket(QByteArray *baDatatoSend);
@@ -119,13 +124,13 @@ class IEleaph : public QObject
         bool isDeviceRegistered(QIODevice* device);
 
     public slots:
-        void addDevice(QIODevice* device, IEleaph::DeviceForgetOptions forgetoptions = IEleaph::ForgetDeviceOnClose, bool enableKeepAliveSystem = true, uint keepAlivePingTime = 1000, uint keepAliveCloseTimeoutTime = 30000);
+        void addDevice(QIODevice* device, IEleaph::DeviceForgetOptions forgetoptions = IEleaph::ForgetDeviceOnClose);
         void removeDevice(QIODevice *device = 0);
 
     protected:
         // protected con and decon for inhertance override
         // set max length by default to 20MB (20971520 Bytes)
-        IEleaph(quint32 maxDataLength = 20971520, QObject *parent = 0);
+        IEleaph(KeepAliveMode keepAliveMode, uint keepAlivePingTime = 1000, uint keepAliveCloseTimeoutTime = 300000, quint32 maxDataLength = 20971520, QObject *parent = 0);
         ~IEleaph();
 
     protected:
@@ -147,8 +152,10 @@ class IEleaph : public QObject
         QTcpServer* serverTcp = 0;
         QSet<QIODevice*> lstDevices;
 
-        // devices for keep alives
-        bool boolKeepConnectedHostsAlive;
+        // keep alive system
+        KeepAliveMode keepAliveMode;
+        uint keepAlivePingTime;
+        uint keepAliveCloseTimeoutTime;
 };
 
 #endif // SQMPACKETHANDLER_H

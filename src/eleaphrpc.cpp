@@ -6,7 +6,8 @@
 
 #include "eleaphrpc.h"
 
-EleaphRpc::EleaphRpc(QObject *parent, quint32 maxDataLength) : IEleaph(maxDataLength, parent)
+EleaphRpc::EleaphRpc(KeepAliveMode keepAliveMode, QObject *parent, uint keepAlivePingTime, uint keepAliveCloseTimeoutTime, quint32 maxDataLength) :
+    IEleaph(keepAliveMode, keepAlivePingTime, keepAliveCloseTimeoutTime, maxDataLength, parent)
 {
     // register the ProtoPacket
     qRegisterMetaType<EleaphRpcPacket>("EleaphRpcPacket");
