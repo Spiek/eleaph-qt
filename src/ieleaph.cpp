@@ -187,6 +187,12 @@ void IEleaph::dataHandler()
            if(this->keepAliveMode == KeepAliveMode::EleaphClient && packet->intPacktLength == 0) this->sendDataPacket(ioPacketDevice, "");
         }
 
+        // if we have pending data in write cache, write it
+        if(ioPacketDevice->property(PROPERTYNAME_WRITEDATACACHE).isValid()) {
+             ioPacketDevice->write(ioPacketDevice->property(PROPERTYNAME_WRITEDATACACHE).value<QByteArray>());
+             ioPacketDevice->setProperty(PROPERTYNAME_WRITEDATACACHE, QVariant());
+        }
+
         // cleanup and exit on empty packets
         if(packet->intPacktLength == 0) goto cleanup_packet;
 
@@ -303,6 +309,17 @@ void IEleaph::sendDataPacket(QIODevice *device, QByteArray *baDatatoSend)
     // create content length with the help of Qt's Endian method qToBigEndian
     PACKETLENGTHTYPE intDataLength = baDatatoSend->length();
     intDataLength = qToBigEndian<PACKETLENGTHTYPE>(intDataLength);
+
+    // if we don't receive a response from server since keepAlivePingTime-seconds + 1ms, hold back writing data (until we get the next data from server!)
+    if(device->property(PROPERTYNAME_KEEPALIVE).isValid() &&
+       device->property(PROPERTYNAME_KEEPALIVE).value<qint64>() + this->keepAlivePingTime + 1 < QDateTime::currentMSecsSinceEpoch())
+    {
+        QByteArray data = device->property(PROPERTYNAME_WRITEDATACACHE).toByteArray();
+        data.append((char*)&intDataLength, sizeof(PACKETLENGTHTYPE));
+        data.append(*baDatatoSend);
+        device->setProperty(PROPERTYNAME_WRITEDATACACHE, data);
+        return;
+    }
 
     // send the content-length and data
     device->write((char*)&intDataLength, sizeof(PACKETLENGTHTYPE));
