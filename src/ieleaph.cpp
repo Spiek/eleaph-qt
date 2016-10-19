@@ -14,10 +14,10 @@
  * IEleaph - construct the PacketHandler
  *           NOTE: protected constructor for SINGELTON construction
  */
-IEleaph::IEleaph(KeepAliveMode keepAliveMode, uint keepAlivePingTime, uint keepAliveCloseTimeoutTime, quint32 maxDataLength, QObject *parent) : QObject(parent)
+IEleaph::IEleaph(uint keepAlivePingTime, uint keepAliveCloseTimeoutTime, quint32 maxDataLength, QObject *parent) : QObject(parent)
 {
     // save construct vars
-    this->keepAliveMode = keepAliveMode;
+    this->keepAliveMode = keepAlivePingTime == 0 ? KeepAliveMode::Disabled : KeepAliveMode::EleaphClient;
     this->keepAlivePingTime = keepAlivePingTime;
     this->keepAliveCloseTimeoutTime = keepAliveCloseTimeoutTime;
     this->intMaxDataLength = maxDataLength;
@@ -258,6 +258,9 @@ bool IEleaph::startTcpListening(quint16 port, QHostAddress address, bool useSSL,
     // (re)construct QTcpServer or SslTcpServer
     if(this->serverTcp) this->serverTcp->deleteLater();
     this->serverTcp = useSSL ? new SslTcpServer(pathCrt, pathKey, verifyPeer, this) : new QTcpServer(this);
+
+    // change keep alive system (if enabled) to Server
+    if(this->keepAliveMode != KeepAliveMode::Disabled) this->keepAliveMode = KeepAliveMode::EleaphServer;
 
     // handle new connected tcp clients
     this->connect(this->serverTcp, SIGNAL(newConnection()), this, SLOT(newTcpHost()));

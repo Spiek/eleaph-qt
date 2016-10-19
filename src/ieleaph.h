@@ -106,11 +106,6 @@ class IEleaph : public QObject
             ForgetKillDeviceOnClose      = ForgetDeviceOnClose      + (1 << 2),
             ForgetKillDeviceOnDisconnect = ForgetDeviceOnDisconnect + (1 << 3)
         };
-        enum class KeepAliveMode {
-            Disabled = 0,
-            EleaphServer = 1,
-            EleaphClient = 2
-        };
 
         // start tcp listening
         bool startTcpListening(quint16 port, QHostAddress address = QHostAddress::Any, bool useSSL = false, QString pathCrt = "", QString pathKey = "", bool verifyPeer = true);
@@ -131,7 +126,7 @@ class IEleaph : public QObject
     protected:
         // protected con and decon for inhertance override
         // set max length by default to 20MB (20971520 Bytes)
-        IEleaph(KeepAliveMode keepAliveMode, uint keepAlivePingTime = 1000, uint keepAliveCloseTimeoutTime = 300000, quint32 maxDataLength = 20971520, QObject *parent = 0);
+        IEleaph(uint keepAlivePingTime = 1000, uint keepAliveCloseTimeoutTime = 300000, quint32 maxDataLength = 20971520, QObject *parent = 0);
         ~IEleaph();
 
     protected:
@@ -154,7 +149,11 @@ class IEleaph : public QObject
         QSet<QIODevice*> lstDevices;
 
         // keep alive system
-        KeepAliveMode keepAliveMode;
+        enum class KeepAliveMode {
+            Disabled = 0,
+            EleaphServer = 1,
+            EleaphClient = 2
+        } keepAliveMode;
         uint keepAlivePingTime;
         uint keepAliveCloseTimeoutTime;
 };

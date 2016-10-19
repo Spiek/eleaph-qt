@@ -48,7 +48,7 @@ class EleaphRpc : public IEleaph
 
     public:
         // con / decon
-        EleaphRpc(KeepAliveMode keepAliveMode, QObject *parent = 0, uint keepAlivePingTime = 1000, uint keepAliveCloseTimeoutTime = 300000, quint32 maxDataLength = 20971520);
+        EleaphRpc(QObject *parent = 0, uint keepAlivePingTime = 1000, uint keepAliveCloseTimeoutTime = 300000, quint32 maxDataLength = 20971520);
 
         //
         // RPC funtions
