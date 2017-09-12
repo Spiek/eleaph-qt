@@ -207,12 +207,12 @@ void IEleaph::dataHandler()
         // read the complete content of packet
         packet->baRawPacketData = new QByteArray(ioPacketDevice->read(packet->intPacktLength));
 
-        // call user implementation (IMPORTANT: user implementation has to delete the DataPacket after use!)
-        this->newDataPacketReceived(packet);
-
         // at this point the entire packet was read and sent:
         // now we delete used Packet-Cache property
         ioPacketDevice->setProperty(PROPERTYNAME_PACKET, QVariant(QVariant::Invalid));
+
+        // call user implementation (IMPORTANT: user implementation has to delete the DataPacket after use!)
+        this->newDataPacketReceived(packet);
         continue;
 
         /// </Read Content> <-- Content read complete!
