@@ -313,8 +313,9 @@ void IEleaph::sendDataPacket(QIODevice *device, QByteArray *baDatatoSend)
     PACKETLENGTHTYPE intDataLength = baDatatoSend->length();
     intDataLength = qToBigEndian<PACKETLENGTHTYPE>(intDataLength);
 
-    // if we don't receive a response from server since keepAlivePingTime-seconds + 1ms, hold back writing data (until we get the next data from server!)
-    if(device->property(PROPERTYNAME_KEEPALIVE).isValid() &&
+    // if we don't receive a response from server since keepAlivePingTime-seconds + 1ms, hold back writing data (until we get the next data from client/server!)
+    if(!baDatatoSend->isEmpty() &&
+       device->property(PROPERTYNAME_KEEPALIVE).isValid() &&
        device->property(PROPERTYNAME_KEEPALIVE).value<qint64>() + this->keepAlivePingTime + 1 < QDateTime::currentMSecsSinceEpoch())
     {
         QByteArray data = device->property(PROPERTYNAME_WRITEDATACACHE).toByteArray();

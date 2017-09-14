@@ -126,7 +126,7 @@ class IEleaph : public QObject
     protected:
         // protected con and decon for inhertance override
         // set max length by default to 20MB (20971520 Bytes)
-        IEleaph(uint keepAlivePingTime = 1000, uint keepAliveCloseTimeoutTime = 300000, quint32 maxDataLength = 20971520, QObject *parent = 0);
+        IEleaph(uint keepAlivePingTime = 1000, uint keepAliveCloseTimeoutTime = 30000, quint32 maxDataLength = 20971520, QObject *parent = 0);
         ~IEleaph();
 
     protected:
