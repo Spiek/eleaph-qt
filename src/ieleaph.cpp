@@ -73,7 +73,7 @@ void IEleaph::addDevice(QIODevice* device, DeviceForgetOptions forgetoptions)
             if(device->property(PROPERTYNAME_KEEPALIVE).value<qint64>() + this->keepAliveCloseTimeoutTime < QDateTime::currentMSecsSinceEpoch()) {
                 return device->close();
             }
-            if(this->keepAliveMode == KeepAliveMode::EleaphServer) this->sendDataPacket(device, "");
+            this->sendDataPacket(device, "");
         });
         timerKeepAlive->setInterval(this->keepAlivePingTime);
         timerKeepAlive->start();
@@ -157,6 +157,11 @@ void IEleaph::dataHandler()
         /// </Aquire Data Packet> <-- Packet was successfull aquired!
         /// <Read Header>
 
+        // update keep alive timer if we receive data
+        if(ioPacketDevice->property(PROPERTYNAME_KEEPALIVETIMER).isValid()) {
+           ioPacketDevice->setProperty(PROPERTYNAME_KEEPALIVE, QDateTime::currentMSecsSinceEpoch());
+        }
+
         // read header if it is not present, yet
         if(!packet->intPacktLength) {
             // if not enough data available to read complete header, exit here and wait for more data!
@@ -178,14 +183,6 @@ void IEleaph::dataHandler()
 
         /// </Read Header> <-- Header read complete!
         /// <Read Content>
-
-        // update keep alive timer if we receive data
-        if(ioPacketDevice->property(PROPERTYNAME_KEEPALIVETIMER).isValid()) {
-           ioPacketDevice->setProperty(PROPERTYNAME_KEEPALIVE, QDateTime::currentMSecsSinceEpoch());
-
-           // if we have an empty (ping) packet, send pong back
-           if(this->keepAliveMode == KeepAliveMode::EleaphClient && packet->intPacktLength == 0) this->sendDataPacket(ioPacketDevice, "");
-        }
 
         // if we have pending data in write cache, write it
         if(ioPacketDevice->property(PROPERTYNAME_WRITEDATACACHE).isValid()) {
